@@ -1,4 +1,11 @@
 import se.bjurr.gitchangelog.plugin.gradle.GitChangelogTask
+import com.nwalsh.gradle.saxon.SaxonXsltTask
+
+buildscript {
+    dependencies {
+        classpath group: 'net.sf.saxon', name: 'Saxon-HE', version: '12.5'
+    }
+}
 
 plugins {
     id 'java'
@@ -17,9 +24,9 @@ plugins {
     id "de.undercouch.download" version "latest.release"
     id 'org.hidetake.ssh' version "latest.release"
 
-    id "se.bjurr.gitchangelog.git-changelog-gradle-plugin" version "2.0.0" //later depends on JDK 17
+    id "se.bjurr.gitchangelog.git-changelog-gradle-plugin" version "latest.release"
     id "me.champeau.jmh" version "latest.release"
-    id "com.nwalsh.gradle.saxon.saxon-gradle" version "0.9.6"
+    id "com.nwalsh.gradle.saxon.saxon-gradle" version "latest.release"
 }
 
 def getVersion = { boolean considerSnapshot ->
@@ -27,48 +34,41 @@ def getVersion = { boolean considerSnapshot ->
     Integer minor = 0
     Integer patch = null
     Integer build = null
-    def commit = null
-    def snapshot = ""
-    new ByteArrayOutputStream().withStream { os ->
-        exec {
-            args = [
-                    "--no-pager"
-                    , "describe"
-                    , "--tags"
-                    , "--always"
-                    , "--dirty=-SNAPSHOT"
-            ]
-            executable "git"
-            standardOutput = os
-        }
-        def versionStr = os.toString().trim()
-        def pattern = /(?<major>\d*)\.(?<minor>\d*)(\.(?<patch>\d*))?(-(?<build>\d*)-(?<commit>[a-zA-Z\d]*))?/
-        def matcher = versionStr =~ pattern
-        if (matcher.find()) {
-            major = matcher.group('major') as Integer
-            minor = matcher.group('minor') as Integer
-            patch = matcher.group('patch') as Integer
-            build = matcher.group('build') as Integer
-            commit = matcher.group('commit')
-        }
+    String commit = null
+    String snapshot = ""
 
-        if (considerSnapshot && ( versionStr.endsWith('SNAPSHOT') || build!=null) ) {
-            minor++
-            if (patch!=null) patch = 0
-            snapshot = "-SNAPSHOT"
-        }
+    def versionStr = providers.exec {
+        commandLine "git", "--no-pager", "-C", project.projectDir,  "describe", "--tags", "--always", "--dirty=-SNAPSHOT"
+    }.standardOutput.asText.get().trim()
+
+    def pattern = /(?<major>\d*)\.(?<minor>\d*)(\.(?<patch>\d*))?(-(?<build>\d*)-(?<commit>[a-zA-Z\d]*))?/
+    def matcher = versionStr =~ pattern
+
+    if (matcher.find()) {
+        major = matcher.group('major') as Integer ?: 0
+        minor = matcher.group('minor') as Integer ?: 0
+        patch = matcher.group('patch') as Integer ?: null
+        build = matcher.group('build') as Integer ?: null
+        commit = matcher.group('commit') ?: null
     }
-    return patch!=null
+
+    if (considerSnapshot && (versionStr.endsWith('SNAPSHOT') || build != null)) {
+        minor++
+        if (patch != null) patch = 0
+        snapshot = "-SNAPSHOT"
+    }
+
+    return patch != null
             ? "${major}.${minor}.${patch}${snapshot}"
-            :  "${major}.${minor}${snapshot}"
+            : "${major}.${minor}${snapshot}"
 }
+
 
 // for publishing a release, call Gradle with Environment Variable RELEASE:
 // RELEASE=true gradle JSQLParser:publish
 version = getVersion( !System.getenv("RELEASE") )
 group = 'com.github.jsqlparser'
 description = 'JSQLParser library'
-archivesBaseName = "JSQLParser"
 
 repositories {
     gradlePluginPortal()
@@ -79,6 +79,8 @@ repositories {
     maven {
         url = uri('https://s01.oss.sonatype.org/content/repositories/snapshots/')
     }
+
+    maven { url "https://dev.saxonica.com/maven" }
 }
 
 configurations {
@@ -107,11 +109,13 @@ dependencies {
     testImplementation 'org.openjdk.jmh:jmh-generator-annprocess:+'
 
     // Java Doc in XML Format
-    xmlDoclet 'com.manticore-projects.tools:xml-doclet:1.+'
+    xmlDoclet 'com.manticore-projects.tools:xml-doclet:+'
 
     // enforce latest version of JavaCC
     testImplementation 'net.java.dev.javacc:javacc:+'
     javacc 'net.java.dev.javacc:javacc:+'
+
+
 }
 
 compileJavacc {
@@ -124,9 +128,10 @@ java {
 
     sourceCompatibility = '11'
     targetCompatibility = '11'
+
     // needed for XML-Doclet to work (since Doclet changed again with Java 13)
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(11))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
 
@@ -160,10 +165,10 @@ tasks.register('xmldoc', Javadoc) {
     )
 
     source = sourceSets.main.allJava
-    // beware: Gradle deletes this folder automatically and there is no switch-off
+    include("build/generated/javacc/net/sf/jsqlparser/parser/*.java" )
     destinationDir = reporting.file("xmlDoclet")
     options.docletpath = configurations.xmlDoclet.files as List
-    options.doclet = "com.github.markusbernhardt.xmldoclet.XmlDoclet"
+    options.doclet = "com.manticore.tools.xmldoclet.XmlDoclet"
     title = "API $version"
     options.addBooleanOption("rst", true)
     options.addBooleanOption("withFloatingToc", Boolean.parseBoolean(System.getenv().getOrDefault("FLOATING_TOC", "true")))
@@ -184,11 +189,11 @@ test {
     useJUnitPlatform()
 
     // set heap size for the test JVM(s)
-    minHeapSize = "128m"
+    minHeapSize = "1G"
     maxHeapSize = "4G"
 
     // set JVM stack size
-    jvmArgs = ['-Xss2m']
+    jvmArgs = ['-Xss2m', '--add-opens=java.base/java.lang=ALL-UNNAMED']
 
     jacoco {
         excludes = ['net/sf/jsqlparser/parser/CCJSqlParserTokenManager']
@@ -262,13 +267,12 @@ jacocoTestCoverageVerification {
 
 spotbugsMain {
     reports {
-        html {
-            enabled = true
-            destination = file("build/reports/spotbugs/main/spotbugs.html")
-            stylesheet = 'fancy-hist.xsl'
-        }
+        html.required.set(true)
+        html.outputLocation.set( layout.buildDirectory.file("reports/spotbugs/main/spotbugs.html").get().asFile )
+        html.stylesheet="fancy-hist.xsl"
     }
 }
+
 
 spotbugs {
     // fail only on P1 and without the net.sf.jsqlparser.parser.*
@@ -310,11 +314,11 @@ spotless {
 
         // define the steps to apply to those files
         trimTrailingWhitespace()
-        indentWithSpaces(4) // or spaces. Takes an integer argument if you don't like 4
+        leadingTabsToSpaces(4)
         endWithNewline()
     }
     java {
-        indentWithSpaces(4)
+        leadingTabsToSpaces(4)
         eclipse().configFile('config/formatter/eclipse-java-google-style.xml')
     }
 }
@@ -329,63 +333,63 @@ tasks.withType(Checkstyle).configureEach {
 
 tasks.register('renderRR') {
     dependsOn(compileJavacc)
+
     doLast {
-        // these WAR files have been provided as a courtesy by Gunther Rademacher
-        // and belong to the RR - Railroad Diagram Generator Project
-        // https://github.com/GuntherRademacher/rr
-        //
-        // Hosting at manticore-projects.com is temporary until a better solution is found
-        // Please do not use these files without Gunther's permission
+        def rrDir = layout.buildDirectory.dir("rr").get().asFile
+
+        // Download convert.war
         download.run {
             src 'http://manticore-projects.com/download/convert.war'
-            dest "$buildDir/rr/convert.war"
+            dest new File(rrDir, "convert.war")
             overwrite false
             onlyIfModified true
         }
 
+        // Download rr.war
         download.run {
             src 'http://manticore-projects.com/download/rr.war'
-            dest "$buildDir/rr/rr.war"
+            dest new File(rrDir, "rr.war")
             overwrite false
             onlyIfModified true
             tempAndMove true
         }
 
-        javaexec {
-            standardOutput = new FileOutputStream("${buildDir}/rr/JSqlParserCC.ebnf")
-            main = "-jar"
+        // Convert JJ file to EBNF
+        tasks.register("convertJJ", JavaExec) {
+            standardOutput = new FileOutputStream(new File(rrDir, "JSqlParserCC.ebnf"))
+            mainClass = "-jar"
             args = [
-                    "$buildDir/rr/convert.war",
-                    "$buildDir/generated/jjtree/net/sf/jsqlparser/parser/JSqlParserCC.jj"
+                    new File(rrDir, "convert.war").absolutePath,
+                    layout.buildDirectory.dir("generated/jjtree/net/sf/jsqlparser/parser/JSqlParserCC.jj").get().asFile.absolutePath
             ]
-        }
+        }.get().exec()
 
-        javaexec {
-            main = "-jar"
+        // Generate RR diagrams
+        tasks.register("generateRR", JavaExec) {
+            mainClass = "-jar"
             args = [
-                    "$buildDir/rr/rr.war",
+                    new File(rrDir, "rr.war").absolutePath,
                     "-noepsilon",
                     "-color:#4D88FF",
                     "-offset:0",
                     "-width:800",
-                    //"-png",
-                    //"-out:${buildDir}/rr/JSqlParserCC.zip",
-                    "-out:${buildDir}/rr/JSqlParserCC.xhtml",
-                    "${buildDir}/rr/JSqlParserCC.ebnf"
+                    "-out:${new File(rrDir, "JSqlParserCC.xhtml")}",
+                    new File(rrDir, "JSqlParserCC.ebnf").absolutePath
             ]
-        }
+        }.get().exec()
     }
 }
 
+
 tasks.register('gitChangelogTask', GitChangelogTask) {
-    fromRepo = file("$projectDir")
-    file = new File("${projectDir}/src/site/sphinx/changelog.rst")
-    fromRef = "4.0"
+    fromRepo.set( file("$projectDir").toString() )
+    file.set( new File("${projectDir}/src/site/sphinx/changelog.rst") )
+    fromRevision.set( "4.0")
     //toRef = "1.1";
 
     // switch off the formatter since the indentation matters for Mark-down
     // @formatter:off
-    templateContent ="""
+    templateContent.set ("""
 ************************
 Changelog
 ************************
@@ -412,7 +416,7 @@ Version {{name}}
 
  {{/issues}}
 {{/tags}}
-"""
+""")
     // @formatter:on
 }
 
@@ -429,13 +433,13 @@ tasks.register('updateKeywords', JavaExec) {
     dependsOn(compileJava)
 }
 
-xslt  {
+task xslt(type: SaxonXsltTask) {
     def outFile = version.endsWith("-SNAPSHOT")
             ?   file("src/site/sphinx/syntax_snapshot.rst")
             :   file("src/site/sphinx/syntax_stable.rst")
 
     dependsOn(renderRR)
-    stylesheet 'src/main/resources/rr/xhtml2rst.xsl'
+    stylesheet file('src/main/resources/rr/xhtml2rst.xsl')
 
     parameters (
             "withFloatingToc": System.getenv().getOrDefault("FLOATING_TOC", "true"),
@@ -443,7 +447,7 @@ xslt  {
     )
 
     // Transform every .xml file in the "input" directory.
-    input "$buildDir/rr/JSqlParserCC.xhtml"
+    input layout.buildDirectory.file("rr/JSqlParserCC.xhtml").get()
     output outFile
 }
 
@@ -474,7 +478,7 @@ tasks.register('sphinx', Exec) {
             , "-Drelease=${getVersion(false)}"
             , "-Drst_prolog=$PROLOG"
             , "${projectDir}/src/site/sphinx"
-            , "${project.buildDir}/sphinx"
+            , layout.buildDirectory.file("sphinx").get().asFile
     ]
 
     executable "sphinx-build"
@@ -494,10 +498,11 @@ publish {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {
+        create("mavenJava", MavenPublication) {
             artifactId = 'jsqlparser'
 
             from components.java
+
             versionMapping {
                 usage('java-api') {
                     fromResolutionOf('runtimeClasspath')
@@ -506,53 +511,60 @@ publishing {
                     fromResolutionResult()
                 }
             }
+
             pom {
-                name = 'JSQLParser library'
-                description = 'Parse SQL Statements into Abstract Syntax Trees (AST)'
-                url = 'https://github.com/JSQLParser/JSqlParser'
+                name.set('JSQLParser library')
+                description.set('Parse SQL Statements into Abstract Syntax Trees (AST)')
+                url.set('https://github.com/JSQLParser/JSqlParser')
+
                 licenses {
                     license {
-                        name = 'GNU Library or Lesser General Public License (LGPL) V2.1'
-                        url = 'http://www.gnu.org/licenses/lgpl-2.1.html'
+                        name.set('GNU Library or Lesser General Public License (LGPL) V2.1')
+                        url.set('http://www.gnu.org/licenses/lgpl-2.1.html')
                     }
                     license {
-                        name = 'The Apache Software License, Version 2.0'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        name.set('The Apache Software License, Version 2.0')
+                        url.set('http://www.apache.org/licenses/LICENSE-2.0.txt')
                     }
                 }
+
                 developers {
                     developer {
-                        id = 'twa'
-                        name = 'Tobias Warneke'
-                        email = 't.warneke@gmx.net'
+                        id.set('twa')
+                        name.set('Tobias Warneke')
+                        email.set('t.warneke@gmx.net')
                     }
                     developer {
-                        id = 'are'
-                        name = 'Andreas Reichel'
-                        email = 'andreas@manticore-projects.com'
+                        id.set('are')
+                        name.set('Andreas Reichel')
+                        email.set('andreas@manticore-projects.com')
                     }
                 }
+
                 scm {
-                    connection = 'scm:git:https://github.com/JSQLParser/JSqlParser.git'
-                    developerConnection = 'scm:git:ssh://git@github.com:JSQLParser/JSqlParser.git'
-                    url = 'https://github.com/JSQLParser/JSqlParser.git'
+                    connection.set('scm:git:https://github.com/JSQLParser/JSqlParser.git')
+                    developerConnection.set('scm:git:ssh://git@github.com:JSQLParser/JSqlParser.git')
+                    url.set('https://github.com/JSQLParser/JSqlParser.git')
                 }
             }
         }
     }
+
     repositories {
         maven {
-            name "ossrh"
+            name = "ossrh"
             def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-            def snapshotsRepoUrl= "https://oss.sonatype.org/content/repositories/snapshots/"
-            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+            url(version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl)
+
             credentials {
-                username = System.getenv("ossrhUsername")
-                password = System.getenv("ossrhPassword")
+                username = providers.environmentVariable("ossrhUsername").orNull
+                password = providers.environmentVariable("ossrhPassword").orNull
             }
         }
     }
 }
+
 
 signing {
     //def signingKey = findProperty("signingKey")
@@ -571,11 +583,12 @@ tasks.withType(JavaCompile).configureEach {
 
 remotes {
     webServer {
-        host = findProperty("${project.name}.host")
-        user = findProperty("${project.name}.username")
-        identity = new File("${System.properties['user.home']}/.ssh/id_rsa")
+        host = findProperty("${project.name}.host") ?: "defaultHost" // Provide default if not found
+        user = findProperty("${project.name}.username") ?: "defaultUsername" // Provide default if not found
+        identity = file("${System.getProperty('user.home')}/.ssh/id_rsa")
     }
 }
+
 
 tasks.register('upload') {
     doFirst {
@@ -593,13 +606,16 @@ tasks.register('upload') {
             session(remotes.webServer) {
                 def versionStable = getVersion(false)
                 execute "mkdir -p download/${project.name}-${versionStable}"
-                for (File file: fileTree(include:['*.jar'], dir:"${project.buildDir}/libs").collect()) {
+                for (File file: fileTree(include:['*.jar'], dir: layout.buildDirectory.dir("libs").get()).collect()) {
                     put from: file, into: "download/${project.name}-${versionStable}"
                 }
             }
         }
     }
-}
-check.dependsOn jacocoTestCoverageVerification
-upload.dependsOn(check, assemble, gitChangelogTask, renderRR, xslt, xmldoc)
 
+    dependsOn(check, assemble, gitChangelogTask, renderRR, xslt, xmldoc)
+}
+
+check {
+    dependsOn jacocoTestCoverageVerification
+}
