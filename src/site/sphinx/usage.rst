@@ -2,44 +2,105 @@
 How to use it
 ******************************
 
-.. hint::
+JSQLParser turns SQL text into a tree of Java objects, lets you inspect or rewrite that tree, and prints it back out as SQL. Everything on this page is built on those three moves.
 
-    1) **Quoting:** Double Quotes ``".."`` are used for quoting identifiers. Parsing T-SQL on **MS SQL Server** or **Sybase** with Squared Brackets ``[..]`` depends on ``Squared Bracket Quotation`` as shown in section :ref:`Define the Parser Features` below.
+.. code-block:: java
+    :caption: The whole idea in five lines
 
-    2) JSQLParser uses a more restrictive list of ``Reserved Keywords`` and such keywords will **need to be quoted**.
+    Statement statement = CCJSqlParserUtil.parse("SELECT a FROM my_table WHERE id = 42");
 
-    3) **Escaping:** JSQLParser pre-defines standard compliant **Single Quote** ``'..`` **Escape Character**. Additional Back-slash ``\..`` Escaping needs to be activated by setting the ``BackSlashEscapeCharacter`` parser feature. See section :ref:`Define the Parser Features` below for details.
+    // inspect it
+    PlainSelect select = (PlainSelect) statement;
+    Table table = (Table) select.getFromItem();      // my_table
 
-    4) Oracle Alternative Quoting is partially supported for common brackets such as ``q'{...}'``, ``q'[...]'``, ``q'(...)'`` and ``q''...''``.
+    // print it back
+    String sql = statement.toString();
 
-    5) Supported Statement Separators are Semicolon ``;``, ``GO``, Slash ``/`` or two empty lines ``\n\n\n``.
+.. tip::
+
+    **New here?** Read :ref:`Add JSQLParser to your Project`, then :ref:`Parse a SQL Statement`, then :ref:`Explore the Parsed Tree`. Everything after that is optional and can be read in any order.
+
+.. list-table:: What is on this page
+    :header-rows: 1
+    :widths: 30 70
+
+    * - Section
+      - Use it when you want to …
+    * - :ref:`Add JSQLParser to your Project`
+      - pull in the dependency, and pick between the Manticore and upstream builds
+    * - :ref:`Parse a SQL Statement`
+      - turn SQL text into Java objects
+    * - :ref:`Explore the Parsed Tree`
+      - find your way around the object model
+    * - :ref:`Classify a Statement`
+      - know whether SQL reads, writes or returns rows — before you run it
+    * - :ref:`Find Table Names`
+      - list every table a statement touches
+    * - :ref:`Use the Visitor Patterns`
+      - walk the whole tree and react to specific nodes
+    * - :ref:`Build a SQL Statement`
+      - construct SQL from Java instead of from text
+    * - :ref:`Handle Parse Errors`
+      - keep going when one statement in a script is broken
+    * - :ref:`Choose a Dialect`
+      - parse T-SQL brackets, MySQL escapes, BigQuery quoting …
+    * - :ref:`Compile from Source Code`
+      - build JSQLParser yourself or contribute
 
 
-Compile from Source Code
+Add JSQLParser to your Project
 ==============================
 
-You will need to have ``JDK 8`` or ``JDK 11`` installed. Please note that JSQLParser-4.9 is the last ``JDK 8`` compatible release and all development after will depend on ``JDK 11``. Building JSQLParser-5.1 and newer with Gradle will depend on a JDK17 toolchain due to the used plugins.
+There are two sets of artifacts on Maven Central, built from the same source under the same dual licence:
 
-.. tab:: Maven
+.. list-table::
+    :header-rows: 1
+    :widths: 30 30 40
 
-  .. code-block:: shell
+    * - Artifact
+      - ``groupId``
+      - Cut from
+    * - **Manticore build** (recommended)
+      - ``com.manticore-projects.jsqlformatter``
+      - the current development line, released continuously
+    * - Upstream release
+      - ``com.github.jsqlparser``
+      - the official release cadence
+    * - Upstream snapshot
+      - ``com.github.jsqlparser``
+      - the latest commit, overwritten in place
 
-    git clone --depth 1 https://github.com/JSQLParser/JSqlParser.git
-    cd JSqlParser
-    mvn install
+Upstream releases are cut infrequently. Between two of them a lot of grammar and performance work lands — the 11× parse speed-up, JavaCC 8 support, new dialect syntax — and waiting for the next official version to catch up can mean months on a build that already has the fix you need.
 
-.. tab:: Gradle
+Snapshots are not the answer either: a ``-SNAPSHOT`` coordinate is mutable, so the same version string can resolve to different bytes tomorrow. That is fine for trying something out and wrong for a reproducible build.
 
-  .. code-block:: shell
+The **Manticore builds** fill that gap. Each one is an immutable, versioned release published to Maven Central from the current development line, so you get the fixes early *and* a build that stays reproducible. Use them unless you have a reason to pin to the official release — and note the different ``groupId``, the artifact name is the same.
 
-    git clone --depth 1 https://github.com/JSQLParser/JSqlParser.git
-    cd JSqlParser
-    gradle publishToMavenLocal
+.. tab:: Maven — Manticore
 
+    .. code-block:: xml
 
+        <dependency>
+            <groupId>com.manticore-projects.jsqlformatter</groupId>
+            <artifactId>jsqlparser</artifactId>
+            <version>[5.3.218,)</version>
+        </dependency>
 
-Build Dependencies
-==============================
+    The range ``[5.3.218,)`` takes the newest available build. Pin an exact version instead once you ship.
+
+.. tab:: Gradle — Manticore
+
+    .. code-block:: groovy
+
+        repositories {
+            mavenCentral()
+        }
+
+        dependencies {
+            implementation 'com.manticore-projects.jsqlformatter:jsqlparser:+'
+        }
+
+    ``+`` takes the newest available build. Pin an exact version instead once you ship.
 
 .. tab:: Maven Release
 
@@ -100,11 +161,15 @@ Build Dependencies
             implementation 'com.github.jsqlparser:jsqlparser:|JSQLPARSER_SNAPSHOT_VERSION|'
         }
 
+.. note::
+
+    Features documented here may reach the Manticore builds before the next upstream release. If a class or method on this page is missing, check which of the two you are resolving.
+
 
 Parse a SQL Statement
-==============================			
+==============================
 
-Parse the SQL Text into Java Objects:
+``CCJSqlParserUtil.parse()`` is the entry point. It returns a ``Statement``, which you cast to the concrete type you expect.
 
 .. code-block:: java
 
@@ -127,8 +192,26 @@ Parse the SQL Text into Java Objects:
     Assertions.assertEquals("a", a.getColumnName());
     Assertions.assertEquals("b", b.getColumnName());
 
+For several statements at once, use ``CCJSqlParserUtil.parseStatements()``, which returns a ``Statements`` — an ``ArrayList<Statement>``.
 
-For guidance with the API, use `JSQLFormatter <http://jsqlformatter.manticore-projects.com>`_ to visualize the Traversable Tree of Java Objects:
+.. code-block:: java
+
+    Statements script = CCJSqlParserUtil.parseStatements(
+            "UPDATE t SET a = 1; SELECT a FROM t;");
+
+    assertEquals(2, script.size());
+
+.. note::
+
+    Supported statement separators are semicolon ``;``, ``GO``, slash ``/`` and two empty lines ``\n\n\n``.
+
+If parsing fails on syntax JSQLParser does not know, see :ref:`Handle Parse Errors` — and please `open an issue <https://github.com/JSQLParser/JSqlParser/issues>`_, missing syntax gets added on demand.
+
+
+Explore the Parsed Tree
+==============================
+
+The fastest way to learn the object model is to look at it. Paste your SQL into `JSQLFormatter <http://jsqlformatter.manticore-projects.com>`_ and it will draw the tree, with the Java class of every node:
 
 .. raw:: html
 
@@ -136,7 +219,7 @@ For guidance with the API, use `JSQLFormatter <http://jsqlformatter.manticore-pr
     <pre>
     SQL Text
           └─Statements: net.sf.jsqlparser.statement.select.Select
-              ├─selectItems -> Collection<SelectItem>
+              ├─selectItems -> Collection&lt;SelectItem&gt;
               │  └─LongValue: 1
               ├─Table: dual
               └─where: net.sf.jsqlparser.expression.operators.relational.EqualsTo
@@ -145,48 +228,241 @@ For guidance with the API, use `JSQLFormatter <http://jsqlformatter.manticore-pr
    </pre>
    </div>
 
-Error Handling
+Read that as a map: each line is a getter away. ``select.getSelectItems()``, ``select.getFromItem()``, ``select.getWhere()``. Once the tree gets deeper than a couple of levels, stop casting by hand and use :ref:`Use the Visitor Patterns`.
+
+
+Classify a Statement
 ==============================
 
-There are two features for handling errors
-
-- ``parser.withErrorRecovery(true)`` will continue to the next statement separator and return an empty statement.
-- ``parser.withUnsupportedStatements(true)`` will return an instance of the `UnsupportedStatement` class, although the first statement **must** be a regular statement
+Every ``Statement`` can tell you **what it does** — whether it reads, writes, changes the schema, or sends rows back — without a second parse and without writing a visitor:
 
 .. code-block:: java
-    :caption: Error Recovery
 
-    CCJSqlParser parser = new CCJSqlParser(
-            "select * from mytable; select from; select * from mytable2" );
-    Statements statements = parser.withErrorRecovery().Statements();
+    StatementFeatures features = CCJSqlParserUtil.parse(sqlStr).getFeatures();
 
-    // 3 statements, the failing one set to NULL
-    assertEquals(3, statements.size());
-    assertNull(statements.get(1));
+    if (features.returnsResultSet()) {
+        statement.executeQuery(sqlStr);
+    } else {
+        statement.executeUpdate(sqlStr);
+    }
 
-    // errors are recorded
-    assertEquals(1, parser.getParseErrors().size());
+Why bother
+------------------------------
+
+Two jobs come up constantly, and both are traps if you approach them with string matching:
+
+**Safeguarding a read-only client.** Reporting tools, BI front-ends, LLM-generated SQL, user-supplied filters — plenty of code paths need to reject anything that writes, *before* the statement reaches the database. Checking whether the text starts with ``SELECT`` is not a safeguard.
+
+**Dispatching correctly.** JDBC wants ``executeQuery()`` for row-returning statements and ``executeUpdate()`` for the rest. Get it backwards and you get an exception, not a wrong answer, but you still have to decide.
+
+The reason a keyword check fails is that SQL is not organised into tidy Query/DML/DDL buckets. ``RETURNING`` turns a ``DELETE`` into a row source. A data-modifying CTE hides that ``DELETE`` inside something that begins with ``WITH``. An ``INSERT`` can contain a whole ``SELECT`` and still return nothing:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 55 15 15 15
+
+    * - SQL
+      - returns rows
+      - reads
+      - writes
+    * - ``SELECT * FROM t``
+      - yes
+      - yes
+      - no
+    * - ``INSERT INTO x SELECT * FROM t``
+      - **no**
+      - yes
+      - yes
+    * - ``DELETE FROM t RETURNING *``
+      - **yes**
+      - no
+      - yes
+    * - ``WITH c AS (DELETE FROM t RETURNING *) SELECT * FROM c``
+      - yes
+      - no
+      - **yes**
+    * - ``INSERT INTO x WITH c AS (DELETE FROM t RETURNING *) SELECT * FROM c``
+      - **no**
+      - no
+      - yes
+    * - ``CREATE TABLE t AS SELECT a FROM u``
+      - no
+      - yes
+      - no (schema)
+    * - ``SELECT a INTO new_table FROM t``
+      - **no**
+      - yes
+      - **yes**
+
+Note the last two rows of the fourth and fifth entries: ``RETURNING`` appearing *somewhere* in the statement is not the question. What matters is whether rows reach the client, and that is a property of the statement's own result position, not of any nested one.
+
+The features
+------------------------------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 25 40 35
+
+    * - ``StmtFeature``
+      - Meaning
+      - Typical statements
+    * - ``READS_DATA``
+      - reads persistent rows
+      - ``SELECT .. FROM t``, ``MERGE``, ``CREATE TABLE .. AS SELECT``
+    * - ``RETURNS_RESULT_SET``
+      - rows are sent back to the client
+      - ``SELECT``, ``DELETE .. RETURNING``, ``SHOW``, ``DESCRIBE``, ``EXPLAIN``
+    * - ``MODIFIES_DATA``
+      - rows are written or destroyed
+      - ``INSERT``, ``UPDATE``, ``DELETE``, ``MERGE``, ``UPSERT``, ``TRUNCATE``, ``DROP``
+    * - ``MODIFIES_SCHEMA``
+      - the catalogue changes
+      - ``CREATE``, ``ALTER``, ``DROP``, ``TRUNCATE``, ``GRANT``, ``COMMENT``
+    * - ``MODIFIES_SESSION``
+      - session state changes
+      - ``SET``, ``RESET``, ``USE``, ``DECLARE``, ``ALTER SESSION``
+    * - ``MODIFIES_TRANSACTION``
+      - transaction state or locks change
+      - ``COMMIT``, ``ROLLBACK``, ``SAVEPOINT``, ``LOCK``, ``SELECT .. FOR UPDATE``
+    * - ``OPAQUE``
+      - nothing further can be known statically
+      - ``CALL``, ``EXECUTE``, dynamic SQL, unsupported statements
+
+They are **not mutually exclusive**. ``INSERT .. RETURNING *`` carries ``MODIFIES_DATA`` *and* ``RETURNS_RESULT_SET``; ``TRUNCATE`` carries ``MODIFIES_SCHEMA`` *and* ``MODIFIES_DATA``, so that a guard looking only for data changes still stops it.
+
+Proven, possible, excluded
+------------------------------
+
+Each feature is three-valued, because some questions cannot be answered from syntax alone. ``SELECT nextval('s')`` writes; ``SELECT upper(name)`` does not; the parser cannot tell them apart, because volatility lives in the database catalogue, not in the SQL text.
+
+So a feature is either **proven**, **not excludable**, or **ruled out**, and you pick which side you want to be wrong on:
 
 .. code-block:: java
-    :caption: Unsupported Statement
 
-    Statements statements = CCJSqlParserUtil.parseStatements(
-            "select * from mytable; select from; select * from mytable2; select 4;"
-            , parser -> parser.withUnsupportedStatements() );
+    StatementFeatures features = statement.getFeatures();
 
-    // 4 statements with one Unsupported Statement holding the content
-    assertEquals(4, statements.size());
-    assertInstanceOf(UnsupportedStatement.class, statements.get(1));
-    assertEquals("select from", statements.get(1).toString());
+    features.is(StmtFeature.MODIFIES_DATA);   // the grammar proves it
+    features.may(StmtFeature.MODIFIES_DATA);  // proven, or could not be excluded
 
-    // no errors records, because a statement has been returned
-    assertEquals(0, parser.getParseErrors().size());
+.. list-table::
+    :header-rows: 1
+    :widths: 25 20 55
+
+    * - Caller
+      - Uses
+      - Because
+    * - read-only guard
+      - ``may(..)``
+      - a false negative lets a write through
+    * - JDBC dispatcher
+      - ``is(..)``
+      - a false positive picks ``executeQuery`` for ``CREATE INDEX``
+
+Convenience methods wrap the common combinations:
+
+.. code-block:: java
+
+    features.returnsResultSet();   // is(RETURNS_RESULT_SET)
+    features.modifiesData();       // is(MODIFIES_DATA)
+    features.mayModifyData();      // may(MODIFIES_DATA)
+    features.modifiesSchema();     // is(MODIFIES_SCHEMA)
+    features.isOpaque();           // CALL, EXECUTE, dynamic SQL
+
+When something is merely *possible*, the analysis tells you **why**, so you can resolve it against your own catalogue or allow-list rather than guessing:
+
+.. code-block:: java
+    :caption: Safeguarding a read-only connection
+
+    StatementFeatures features = CCJSqlParserUtil.parse(sqlStr).getFeatures();
+
+    if (connection.isReadOnly() && features.mayModifyData()) {
+        throw new SQLException(
+                "rejected, unresolved: " + features.getUnresolvedReferences());
+        // e.g. [nextval]
+    }
+
+If you can prove some functions side-effect free, hand in a predicate and the uncertainty collapses:
+
+.. code-block:: java
+
+    Set<String> pure = Set.of("upper", "lower", "coalesce");
+
+    StatementFeatures features = statement.getFeatures(pure::contains);
+
+    // SELECT upper(name) FROM t
+    features.mayModifyData();              // false
+    features.getUnresolvedReferences();    // empty
+
+.. warning::
+
+    The verdict is a **syntactic claim, not a semantic guarantee**. A user-defined function, a trigger on the target table or a ``CALL`` can do anything. Use this to reject obviously dangerous SQL early; it does not replace database-side permissions.
+
+Scripts
+------------------------------
+
+``Statements`` is an ``ArrayList<Statement>`` and not a ``Statement``, so it has no ``getFeatures()`` of its own. Two entry points, for two different questions:
+
+.. code-block:: java
+
+    Statements script = CCJSqlParserUtil.parseStatements(
+            "UPDATE t SET a = 1; SELECT a FROM t;");
+
+    // one union verdict — for guards
+    StatementFeatures all = StatementFeatureVisitor.analyse(script);
+    all.modifiesData();        // true
+    all.returnsResultSet();    // true
+
+    // one verdict per statement, in order — for dispatchers
+    List<StatementFeatures> each = StatementFeatureVisitor.analyseEach(script);
+    each.get(0).returnsResultSet();   // false, the UPDATE
+    each.get(1).returnsResultSet();   // true, the SELECT
+
+The union answers *"may this script write anything?"*. It cannot answer *"executeQuery or executeUpdate?"*, because it never says which statement returns the rows.
+
+.. note::
+
+    Nothing is cached. The tree is mutable and you may build statements by hand, so the verdict is recomputed on every call — microseconds against a millisecond-scale parse.
+
+
+Find Table Names
+==============================
+
+``net.sf.jsqlparser.util.TablesNamesFinder`` returns every table name in a statement or an expression, including the ones buried in sub-selects.
+
+.. code-block:: java
+
+     // find in Statements
+     String sqlStr = "select * from A left join B on A.id=B.id and A.age = (select age from C)";
+     Set<String> tableNames = TablesNamesFinder.findTables(sqlStr);
+     assertThat( tableNames ).containsExactlyInAnyOrder("A", "B", "C");
+
+     // find in Expressions
+     String exprStr = "A.id=B.id and A.age = (select age from C)";
+     tableNames = TablesNamesFinder.findTablesInExpression(exprStr);
+     assertThat( tableNames ).containsExactlyInAnyOrder("A", "B", "C");
 
 
 Use the Visitor Patterns
 ==============================
 
-Traverse the Java Object Tree using the Visitor Patterns:
+Casting your way down the tree works for one known shape. For anything general — every column in a query, every table in a script — use a visitor: you override only the node types you care about and the adapters walk the rest.
+
+There is one visitor interface per layer of the model, and an ``..Adapter`` base class for each that already implements the full traversal:
+
+.. list-table::
+    :header-rows: 1
+    :widths: 35 65
+
+    * - Adapter
+      - Reacts to
+    * - ``StatementVisitorAdapter``
+      - statements: ``Select``, ``Insert``, ``CreateTable``, …
+    * - ``SelectVisitorAdapter``
+      - query bodies: ``PlainSelect``, ``SetOperationList``, ``WithItem``, …
+    * - ``ExpressionVisitorAdapter``
+      - expressions: ``Column``, ``Function``, ``EqualsTo``, …
+    * - ``FromItemVisitorAdapter``
+      - FROM items: ``Table``, ``ParenthesedSelect``, ``TableFunction``, …
 
 .. code-block:: java
 
@@ -225,28 +501,15 @@ Traverse the Java Object Tree using the Visitor Patterns:
     // Invoke the Statement Visitor without a context
     stmt.accept(statementVisitor, null);
 
-Find Table Names
-==============================
+.. tip::
 
-The class ``net.sf.jsqlparser.util.TablesNamesFinder`` can be used to return all Table Names from a Query or an Expression.
-
-.. code-block:: java
-
-     // find in Statements
-     String sqlStr = "select * from A left join B on A.id=B.id and A.age = (select age from C)";
-     Set<String> tableNames = TablesNamesFinder.findTables(sqlStr);
-     assertThat( tableNames ).containsExactlyInAnyOrder("A", "B", "C");
-
-     // find in Expressions
-     String exprStr = "A.id=B.id and A.age = (select age from C)";
-     tableNames = TablesNamesFinder.findTablesInExpression(exprStr);
-     assertThat( tableNames ).containsExactlyInAnyOrder("A", "B", "C");
+    The second parameter of every ``visit()`` is a free-form **context** object of your choosing, threaded through the traversal. Pass ``null`` when you do not need it.
 
 
 Build a SQL Statement
 ==============================
 
-Build any SQL Statement from Java Code using a fluent API:
+The object model works in both directions. Build the tree from Java and print it as SQL:
 
 .. code-block:: java
 
@@ -274,14 +537,104 @@ Build any SQL Statement from Java Code using a fluent API:
     Assertions.assertEquals(expectedSQLStr, builder.toString());
 
 
-Define the Parser Features
+Handle Parse Errors
 ==============================
 
-JSQLParser interprets Squared Brackets ``[..]`` as Arrays, which does not work with MS SQL Server and T-SQL. Please use the Parser Features to instruct JSQLParser to read Squared Brackets as Quotes instead.
+By default a syntax error aborts the whole parse. Two features let a script survive one bad statement:
 
-JSQLParser allows for standard compliant Single Quote ``'..`` Escaping. Additional Back-slash ``\..`` Escaping needs to be activated by setting the ``BackSlashEscapeCharacter`` parser feature. JSQLParser reads Double Quotes ``".."`` as quoted identifiers (ANSI SQL); reading them as String Literals (BigQuery, Spark/Databricks, MySQL default sql_mode) needs the ``DoubleQuotedStrings`` parser feature. Adjacent String Literals concatenate optionally: only across a newline (``NEWLINE``, the SQL standard and PostgreSQL) or across any whitespace (``WHITESPACE``, GoogleSQL and Spark/Databricks); ``withAdjacentStringLiterals(true)`` selects the standard ``NEWLINE`` mode, ``false`` switches it off.
+- ``parser.withErrorRecovery(true)`` skips to the next statement separator and returns an empty statement.
+- ``parser.withUnsupportedStatements(true)`` returns an ``UnsupportedStatement`` holding the raw text instead — though the **first** statement must be a regular one.
 
-Additionally there are Features to control the Parser's effort at the cost of the performance.
+.. code-block:: java
+    :caption: Error Recovery
+
+    CCJSqlParser parser = new CCJSqlParser(
+            "select * from mytable; select from; select * from mytable2" );
+    Statements statements = parser.withErrorRecovery().Statements();
+
+    // 3 statements, the failing one set to NULL
+    assertEquals(3, statements.size());
+    assertNull(statements.get(1));
+
+    // errors are recorded
+    assertEquals(1, parser.getParseErrors().size());
+
+.. code-block:: java
+    :caption: Unsupported Statement
+
+    Statements statements = CCJSqlParserUtil.parseStatements(
+            "select * from mytable; select from; select * from mytable2; select 4;"
+            , parser -> parser.withUnsupportedStatements() );
+
+    // 4 statements with one Unsupported Statement holding the content
+    assertEquals(4, statements.size());
+    assertInstanceOf(UnsupportedStatement.class, statements.get(1));
+    assertEquals("select from", statements.get(1).toString());
+
+    // no errors records, because a statement has been returned
+    assertEquals(0, parser.getParseErrors().size());
+
+.. note::
+
+    An ``UnsupportedStatement`` is reported as ``OPAQUE`` by :ref:`Classify a Statement` — nothing about its effects is knowable.
+
+
+Choose a Dialect
+==============================
+
+One grammar covers every supported RDBMS, but a few pieces of syntax mean different things in different products. Those are switched with parser features, and a ``Dialect`` preset turns on the right set for you.
+
+.. code-block:: java
+
+    // MySQL: backslash escapes, hash line comments, double-quoted strings
+    Statement stmt = CCJSqlParserUtil.parse(
+            "SELECT `col` FROM t WHERE a = 'x\\'yz' AND b = 42#24"
+            , parser -> parser.withDialect(Dialect.MYSQL) );
+
+.. list-table::
+    :header-rows: 1
+    :widths: 30 70
+
+    * - ``Dialect``
+      - Turns on
+    * - ``MYSQL``
+      - ``withBackslashEscapeCharacter``, ``withHashLineComments``, ``withDoubleQuotedStrings`` (MySQL and MariaDB, the last for the default ``sql_mode``)
+    * - ``SQLSERVER``
+      - ``withSquareBracketQuotation``
+    * - ``POSTGRESQL``, ``ANSI_SQL``
+      - the newline rule for adjacent string literals
+    * - ``BIGQUERY``
+      - ``withDoubleQuotedStrings``, ``withBackslashEscapeCharacter``, ``withHashLineComments``, any-whitespace rule for adjacent string literals
+    * - ``DATABRICKS``
+      - ``withDoubleQuotedStrings``, ``withBackslashEscapeCharacter``, any-whitespace rule for adjacent string literals
+    * - ``SNOWFLAKE``
+      - ``withBackslashEscapeCharacter`` only, double quotes stay quoted identifiers
+
+Features set explicitly *after* the preset win over it.
+
+The individual features
+------------------------------
+
+.. list-table::
+    :header-rows: 1
+    :widths: 35 65
+
+    * - Feature
+      - What it changes
+    * - ``withSquareBracketQuotation``
+      - ``[..]`` reads as a quoted identifier instead of an array — needed for T-SQL on MS SQL Server and Sybase
+    * - ``withBackslashEscapeCharacter``
+      - ``\\..`` escaping inside string literals, in addition to the standard ``'..`` doubling
+    * - ``withDoubleQuotedStrings``
+      - ``".."`` reads as a string literal instead of a quoted identifier (BigQuery, Spark/Databricks, MySQL default ``sql_mode``)
+    * - ``withHashLineComments``
+      - ``#`` starts a line comment
+    * - ``withAdjacentStringLiterals``
+      - adjacent string literals concatenate: ``NEWLINE`` (SQL standard, PostgreSQL) or ``WHITESPACE`` (GoogleSQL, Spark/Databricks); ``true`` selects ``NEWLINE``, ``false`` switches it off
+    * - ``withAllowComplexParsing``
+      - permits deeply nested expressions, at a significant performance cost
+    * - ``withTimeOut``
+      - aborts parsing after N milliseconds
 
 .. code-block:: java
 
@@ -319,14 +672,37 @@ Additionally there are Features to control the Parser's effort at the cost of th
                 .withBackslashEscapeCharacter(true)
     );
 
-Instead of turning the individual Parser Features on one by one, a ``Dialect`` preset selects the features of that database dialect: ``withDialect(Dialect.MYSQL)`` turns on ``withBackslashEscapeCharacter``, ``withHashLineComments`` and ``withDoubleQuotedStrings`` (MySQL and MariaDB syntax, the latter for the default sql_mode), ``withDialect(Dialect.SQLSERVER)`` turns on ``withSquareBracketQuotation``. ``withDialect(Dialect.POSTGRESQL)`` and ``withDialect(Dialect.ANSI_SQL)`` turn on the newline rule for adjacent String Literals. ``withDialect(Dialect.BIGQUERY)`` and ``withDialect(Dialect.DATABRICKS)`` turn on ``withDoubleQuotedStrings`` and ``withBackslashEscapeCharacter`` plus the any-whitespace rule for adjacent String Literals, the BigQuery preset additionally ``withHashLineComments``; ``withDialect(Dialect.SNOWFLAKE)`` turns on ``withBackslashEscapeCharacter`` only, keeping double quotes as quoted identifiers. Features set explicitly after the dialect preset win over the preset.
+Things that trip people up
+------------------------------
 
-.. code-block:: java
+.. hint::
 
-    // Select the Database Dialect: turns on that dialect's parser features
-    sqlStr="SELECT `col` FROM t WHERE a = 'x\\'yz' AND b = 42#24";
-    Statement stmt3 = CCJSqlParserUtil.parse(
-            sqlStr
-            , parser -> parser
-                .withDialect(Dialect.MYSQL)
-    );
+    1) **Quoting:** Double quotes ``".."`` quote identifiers. Square brackets ``[..]`` are arrays unless you turn on ``withSquareBracketQuotation``.
+
+    2) **Reserved keywords:** JSQLParser uses a more restrictive list than most databases, and such keywords **need to be quoted**.
+
+    3) **Escaping:** standard single-quote ``'..`` escaping is always on. Backslash escaping is not — set ``withBackslashEscapeCharacter``.
+
+    4) **Oracle alternative quoting** is partially supported, for common brackets: ``q'{...}'``, ``q'[...]'``, ``q'(...)'`` and ``q''...''``.
+
+
+Compile from Source Code
+==============================
+
+You need ``JDK 8`` or ``JDK 11``. JSQLParser-4.9 is the last ``JDK 8`` compatible release; everything after depends on ``JDK 11``. Building JSQLParser-5.1 and newer with Gradle needs a JDK 17 toolchain, because of the plugins used.
+
+.. tab:: Maven
+
+  .. code-block:: shell
+
+    git clone --depth 1 https://github.com/JSQLParser/JSqlParser.git
+    cd JSqlParser
+    mvn install
+
+.. tab:: Gradle
+
+  .. code-block:: shell
+
+    git clone --depth 1 https://github.com/JSQLParser/JSqlParser.git
+    cd JSqlParser
+    gradle publishToMavenLocal
