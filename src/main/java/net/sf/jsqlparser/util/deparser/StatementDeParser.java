@@ -15,6 +15,10 @@ import net.sf.jsqlparser.statement.create.domain.CreateDomain;
 import net.sf.jsqlparser.statement.alter.AlterDomain;
 import net.sf.jsqlparser.statement.create.extension.CreateExtension;
 import net.sf.jsqlparser.statement.alter.AlterExtension;
+import net.sf.jsqlparser.statement.create.publication.CreatePublication;
+import net.sf.jsqlparser.statement.alter.AlterPublication;
+import net.sf.jsqlparser.statement.create.subscription.CreateSubscription;
+import net.sf.jsqlparser.statement.alter.AlterSubscription;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -600,6 +604,30 @@ public class StatementDeParser extends AbstractDeParser<Statement>
     @Override
     public <S> StringBuilder visit(AlterExtension statement, S context) {
         builder.append(statement);
+        return builder;
+    }
+
+    @Override
+    public <S> StringBuilder visit(CreatePublication statement, S context) {
+        statement.appendTo(builder, expression -> expression.accept(expressionDeParser, context));
+        return builder;
+    }
+
+    @Override
+    public <S> StringBuilder visit(AlterPublication statement, S context) {
+        statement.appendTo(builder, expression -> expression.accept(expressionDeParser, context));
+        return builder;
+    }
+
+    @Override
+    public <S> StringBuilder visit(CreateSubscription statement, S context) {
+        statement.appendTo(builder, expression -> expression.accept(expressionDeParser, context));
+        return builder;
+    }
+
+    @Override
+    public <S> StringBuilder visit(AlterSubscription statement, S context) {
+        statement.appendTo(builder, expression -> expression.accept(expressionDeParser, context));
         return builder;
     }
 }

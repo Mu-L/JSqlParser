@@ -17,6 +17,10 @@ import net.sf.jsqlparser.statement.create.domain.CreateDomain;
 import net.sf.jsqlparser.statement.alter.AlterDomain;
 import net.sf.jsqlparser.statement.create.extension.CreateExtension;
 import net.sf.jsqlparser.statement.alter.AlterExtension;
+import net.sf.jsqlparser.statement.create.publication.CreatePublication;
+import net.sf.jsqlparser.statement.alter.AlterPublication;
+import net.sf.jsqlparser.statement.create.subscription.CreateSubscription;
+import net.sf.jsqlparser.statement.alter.AlterSubscription;
 
 import net.sf.jsqlparser.parser.feature.Feature;
 import net.sf.jsqlparser.statement.Block;
@@ -716,6 +720,36 @@ public class StatementValidator extends AbstractValidator<Statement>
             validateOptionalFromItem(
                     new Table(statement.getMember().getName()));
         }
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(CreatePublication statement, S context) {
+        validateFeature(Feature.createPublication);
+        statement.getTargets().forEach(target -> target.visit(
+                this::validateOptionalFromItem, this::validateOptionalExpression));
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(AlterPublication statement, S context) {
+        validateFeature(Feature.alterPublication);
+        statement.getTargets().forEach(target -> target.visit(
+                this::validateOptionalFromItem, this::validateOptionalExpression));
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(CreateSubscription statement, S context) {
+        validateFeature(Feature.createSubscription);
+
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(AlterSubscription statement, S context) {
+        validateFeature(Feature.alterSubscription);
+
         return null;
     }
 }

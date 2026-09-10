@@ -15,6 +15,10 @@ import net.sf.jsqlparser.statement.create.domain.CreateDomain;
 import net.sf.jsqlparser.statement.alter.AlterDomain;
 import net.sf.jsqlparser.statement.create.extension.CreateExtension;
 import net.sf.jsqlparser.statement.alter.AlterExtension;
+import net.sf.jsqlparser.statement.create.publication.CreatePublication;
+import net.sf.jsqlparser.statement.alter.AlterPublication;
+import net.sf.jsqlparser.statement.create.subscription.CreateSubscription;
+import net.sf.jsqlparser.statement.alter.AlterSubscription;
 
 import net.sf.jsqlparser.statement.alter.Alter;
 import net.sf.jsqlparser.statement.alter.AlterSession;
@@ -445,6 +449,38 @@ public interface StatementVisitor<T> {
     }
 
     default void visit(AlterExtension statement) {
+        visit(statement, null);
+    }
+
+    default <S> T visit(CreatePublication statement, S context) {
+        return null;
+    }
+
+    default void visit(CreatePublication statement) {
+        visit(statement, null);
+    }
+
+    default <S> T visit(AlterPublication statement, S context) {
+        return null;
+    }
+
+    default void visit(AlterPublication statement) {
+        visit(statement, null);
+    }
+
+    default <S> T visit(CreateSubscription statement, S context) {
+        return null;
+    }
+
+    default void visit(CreateSubscription statement) {
+        visit(statement, null);
+    }
+
+    default <S> T visit(AlterSubscription statement, S context) {
+        return null;
+    }
+
+    default void visit(AlterSubscription statement) {
         visit(statement, null);
     }
 }

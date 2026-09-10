@@ -559,6 +559,8 @@ public enum Feature {
      * @see CreateSequence
      */
     createSequence,
+    /** Publication and subscription definitions. */
+    createPublication, alterPublication, createSubscription, alterSubscription,
     /**
      * Structured type, domain and extension statements.
      */

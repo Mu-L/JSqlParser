@@ -15,6 +15,10 @@ import net.sf.jsqlparser.statement.create.domain.CreateDomain;
 import net.sf.jsqlparser.statement.alter.AlterDomain;
 import net.sf.jsqlparser.statement.create.extension.CreateExtension;
 import net.sf.jsqlparser.statement.alter.AlterExtension;
+import net.sf.jsqlparser.statement.create.publication.CreatePublication;
+import net.sf.jsqlparser.statement.alter.AlterPublication;
+import net.sf.jsqlparser.statement.create.subscription.CreateSubscription;
+import net.sf.jsqlparser.statement.alter.AlterSubscription;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -2555,6 +2559,34 @@ public class TablesNamesFinder<Void>
         if (statement.getMember() != null && statement.getMember().isTable()) {
             visit(new Table(statement.getMember().getName()), context);
         }
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(CreatePublication statement, S context) {
+        statement.getTargets().forEach(target -> target.visit(
+                table -> table.accept(this, context),
+                expression -> expression.accept(this, context)));
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(AlterPublication statement, S context) {
+        statement.getTargets().forEach(target -> target.visit(
+                table -> table.accept(this, context),
+                expression -> expression.accept(this, context)));
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(CreateSubscription statement, S context) {
+
+        return null;
+    }
+
+    @Override
+    public <S> Void visit(AlterSubscription statement, S context) {
+
         return null;
     }
 }
