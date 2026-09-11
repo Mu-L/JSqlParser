@@ -736,6 +736,8 @@ One grammar covers every supported RDBMS, but a few pieces of syntax mean differ
       - GoogleSQL ``CREATE [UNIQUE] NULL_FILTERED INDEX`` with a separate null-filtering flag
     * - ``DORIS``
       - ``JOIN [shuffle]`` and ``JOIN [broadcast]`` distribution hints
+    * - ``COCKROACHDB``
+      - ``ALTER TABLE ... ALTER PRIMARY KEY USING COLUMNS (...)`` with optional hash sharding and storage parameters
 
 Features set explicitly *after* the preset win over it.
 
@@ -749,6 +751,12 @@ Doris distribution hints require ``parser.withDialect(Dialect.DORIS)``.
 ``Join.getJoinHint()`` exposes the keyword and ``Position.AFTER_JOIN``;
 the existing SQL Server hints use ``Position.BEFORE_JOIN``. Rendering preserves
 both the position and the brackets around a Doris hint.
+
+CockroachDB primary-key changes require ``parser.withDialect(Dialect.COCKROACHDB)``.
+Their action is an ``AlterExpressionPrimaryKey`` with key elements and storage
+parameters in ``getIndex()``. ``isUsingHash()`` preserves ``USING HASH``, while
+``getBucketCount()`` holds the legacy ``WITH BUCKET_COUNT = expression`` value.
+The newer ``WITH (bucket_count = expression)`` form uses the index storage parameters.
 
 With ``Dialect.SQLSERVER``, ``PRIMARY KEY NONCLUSTERED (id)`` and
 ``UNIQUE CLUSTERED (id)`` store their clustering option in ``Index.getClustering()``
