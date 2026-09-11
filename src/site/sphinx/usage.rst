@@ -945,3 +945,21 @@ handler bodies. Procedure side effects remain unknown; table discovery reports u
 procedure calls, and feature analysis remains conservative. This covers anonymous blocks
 with variable declarations, SQL statements, assignments, calls, nesting and handlers, not
 all PL/SQL declarations, loops, packages or procedure definitions.
+
+Legacy MySQL GROUP BY ordering
+==============================
+
+MySQL before 8.0.13 accepted ``ASC`` and ``DESC`` on individual ``GROUP BY`` items.
+Select the existing ``MYSQL`` dialect and explicitly enable this legacy syntax:
+
+.. code-block:: java
+
+    Statement statement = CCJSqlParserUtil.parse(
+        "SELECT a FROM t GROUP BY a DESC",
+        parser -> parser.withDialect(Dialect.MYSQL).withLegacyMySqlGroupBy(true));
+
+The option is disabled by default and does not enable this syntax in other dialects.
+``GroupByElement`` keeps its existing expression list; ``getGroupBySortDirection(index)``
+returns each explicit direction, or null when omitted. Directions follow list positions;
+replacing the expression list clears them. Validators report the separate
+``selectGroupByOrdering`` feature, which is not enabled in the MySQL 8.0 capability.
