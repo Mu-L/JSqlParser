@@ -766,6 +766,13 @@ uses the existing ``Update`` model's ``fromItem`` and ``joins`` properties.
 Table discovery and metadata validation recognize a target alias declared in
 that FROM clause. Other dialects retain the existing FROM-after-SET syntax.
 
+``Dialect.SQLSERVER`` supports methods on expression results, including
+``(SELECT ... FOR XML PATH(''), TYPE).value('.', 'varchar(max)')``.
+``MethodCallExpression`` exposes the receiver expression and a ``Function``
+containing the method name and arguments. Field access and method calls share
+the navigation grammar; expression visitors and deparsers traverse both the
+receiver and method arguments. XQuery strings remain string literals.
+
 ``Dialect.POSTGRESQL`` enables ``DO [LANGUAGE name] code [LANGUAGE name]``,
 with the language clause allowed once, before or after the body.
 ``DoStatement.getCode()`` is a ``StringValue`` that preserves the literal's
