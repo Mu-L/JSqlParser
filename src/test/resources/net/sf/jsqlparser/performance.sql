@@ -222,7 +222,7 @@ else 'Contact BO Developers' end,
   (CLM.TOT_BILLED_AMT),
   (CLM.TOT_NET_PAYABLE),
   CASE
-	WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
+    WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
 END,
   CASE
 WHEN ( case when D_CLARITY_DATABASE.CLARITY_DATABASE like '%HCCLHI%' then 'HI'
@@ -315,7 +315,7 @@ END,
   POS_ST.ABBR,
   TRUNC((sysdate-( PAT.BIRTH_DATE ))/365,0),
     case
-	when D_AA_INDICATOR.CLAIM_ID is null
+    when D_AA_INDICATOR.CLAIM_ID is null
 then  'Not AA'
 else 'AA'  end,
   ZC_REG_CD.NAME,
@@ -392,9 +392,9 @@ AND CLM.ORIG_ADJST_CLM_ID IS NULL))
    LEFT OUTER JOIN CLARITY_VENDOR  VENCLM ON (VENCLM.VENDOR_ID=CLM.VENDOR_ID)
    LEFT OUTER JOIN (
   select t1.vendor_id,t1.line,t1.TAX_ID
-from	vendor_tax_id   t1 ,
-(select	vendor_id,max(line) as line from	vendor_tax_id group	by vendor_id)   t2	Where 	t1.vendor_id=t2.vendor_id 	and	t1.line=t2.line
-group	by  t1.vendor_id,t1.line,t1.TAX_ID
+from    vendor_tax_id   t1 ,
+(select vendor_id,max(line) as line from    vendor_tax_id group by vendor_id)   t2  Where   t1.vendor_id=t2.vendor_id   and t1.line=t2.line
+group   by  t1.vendor_id,t1.line,t1.TAX_ID
   )  D_VTN ON (VENCLM.VENDOR_ID=D_VTN.VENDOR_ID)
    LEFT OUTER JOIN (
   SELECT DISTINCT VENDOR_ID,  PLACE_OF_SERVICE_ID FROM VENDOR_POS
@@ -405,12 +405,12 @@ SELECT distinct
    ,999 as PLACE_OF_SERVICE_ID
 from
    vendor_tax_id t1 inner join
-		(
-		select    vendor_id,
-		max(line) as line
-		from      vendor_tax_id
-		group    by vendor_id
-		)  t2 on             t1.vendor_id=t2.vendor_id
+        (
+        select    vendor_id,
+        max(line) as line
+        from      vendor_tax_id
+        group    by vendor_id
+        )  t2 on             t1.vendor_id=t2.vendor_id
                              and        t1.line=t2.line
 WHERE
   t1.TAX_ID  = '811559375'
@@ -427,23 +427,23 @@ CLAIM_ID
 FROM  (SELECT DISTINCT
         CLM_EOB.CLAIM_ID
         ,CASE WHEN MAX(EOB.ROUTE_FROM_DISC_C)=2 THEN 'Yes' ELSE
-		'No'
-		END AS PAT_LIABILITY
+        'No'
+        END AS PAT_LIABILITY
         ,EOB.MNEMONIC
         ,RMC.RMC_EXTERNAL_ID||'/'||RMK.ABBR AS REMIT_CD
         FROM
         AP_CLAIM_PX_EOBS CLM_EOB,
         CLARITY_EOB_CODE EOB,
-		CLARITY_RMC RMC,
-		ZC_REMARK_CODE RMK
+        CLARITY_RMC RMC,
+        ZC_REMARK_CODE RMK
         WHERE
         CLM_EOB.EOB_CODE_ID=EOB.EOB_CODE_ID
-		AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
-		AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
+        AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
+        AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
         --1 IS PEND CODE    2 IS DENIAL CODE        3 IS INFO CODE
         AND EOB.CODE_TYPE_C=3
         GROUP BY CLM_EOB.CLAIM_ID,EOB.ROUTE_FROM_DISC_C,EOB.MNEMONIC,RMC.RMC_EXTERNAL_ID,RMK.ABBR
-		)
+        )
 GROUP BY CLAIM_ID,PAT_LIABILITY
   )  LISTAGG_DTL_INFO ON (CLM.CLAIM_ID=LISTAGG_DTL_INFO.CLAIM_ID)
    LEFT OUTER JOIN (
@@ -479,113 +479,113 @@ FROM  (SELECT DISTINCT
         FROM
         AP_CLAIM_EOB_CODE CLM_EOB,
         CLARITY_EOB_CODE EOB,
-		CLARITY_RMC RMC,
-		ZC_REMARK_CODE RMK
+        CLARITY_RMC RMC,
+        ZC_REMARK_CODE RMK
         WHERE
         CLM_EOB.EOB_CODE_ID=EOB.EOB_CODE_ID
-		AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
-		AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
+        AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
+        AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
         AND CLM_EOB.RESOLUTION_DATE IS NULL
         --1 IS PEND CODE    2 IS DENIAL CODE        3 IS INFO CODE
         AND EOB.CODE_TYPE_C=3
-		)
+        )
 GROUP BY CLAIM_ID
   )  LISTAGG_HDR_INFO ON (CLM.CLAIM_ID=LISTAGG_HDR_INFO.CLAIM_ID)
    LEFT OUTER JOIN AP_CLAIM_CHECK  CLM_CHK ON (CLM.CLAIM_ID=CLM_CHK.CLAIM_ID)
    LEFT OUTER JOIN AP_CHECK  CKR ON (CLM_CHK.CHECK_ID=CKR.CHECK_ID)
 WHERE
-( COALESCE(CLM.WORKFLOW_C,0) IN @Prompt(P_WorkflowTypeInclude)  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In @Prompt(P_CCA-TPMG)  )
+( COALESCE(CLM.WORKFLOW_C,0) IN (PARAM_VALUE('P_WorkflowTypeInclude'))  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In (PARAM_VALUE('P_CCA-TPMG'))  )
   AND
   (
-   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  @Prompt('Enter Product Type or Leave Blank for All:','A','Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type',Multi,Free,Persistent,,User:1,Optional)
+   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  (PARAM_VALUE('Enter Product Type or Leave Blank for All:', 'A', 'Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type', 'Multi', 'Free', 'Persistent', NULL, 'User:1', 'Optional'))
    AND
-   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  @Prompt('Enter Line of Business or Leave Blank for All:','A','Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)',Mono,Free,Persistent,,User:2,Optional)
+   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  PARAM_VALUE('Enter Line of Business or Leave Blank for All:', 'A', 'Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:2', 'Optional')
    AND
-   SERREN.PROV_NAME  LIKE  @Prompt('Enter Provider Name or Leave Blank for All:','A','Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)',Mono,Free,Persistent,,User:3,Optional)
+   SERREN.PROV_NAME  LIKE  PARAM_VALUE('Enter Provider Name or Leave Blank for All:', 'A', 'Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)', 'Mono', 'Free', 'Persistent', NULL, 'User:3', 'Optional')
    AND
-   SERREN_2.NPI  LIKE  @Prompt('Enter Provider ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:4,Optional)
+   SERREN_2.NPI  LIKE  PARAM_VALUE('Enter Provider ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:4', 'Optional')
    AND
-   D_VTN.TAX_ID  LIKE  @Prompt('Enter Vendor Tax ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:5,Optional)
+   D_VTN.TAX_ID  LIKE  PARAM_VALUE('Enter Vendor Tax ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:5', 'Optional')
    AND
-   VENCLM.VENDOR_NAME  LIKE  @Prompt('Enter Vendor Name or Leave Blank for All:','A','Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)',Mono,Free,Persistent,,User:6,Optional)
+   VENCLM.VENDOR_NAME  LIKE  PARAM_VALUE('Enter Vendor Name or Leave Blank for All:', 'A', 'Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:6', 'Optional')
    AND
-   GRP.PLAN_GRP_NAME  LIKE  @Prompt('Enter Plan Group Name or Leave Blank for All:','A','Plan / Group (GRP)\Plan Grp Name (GRP)',Mono,Free,Persistent,,User:0,Optional)
+   GRP.PLAN_GRP_NAME  LIKE  PARAM_VALUE('Enter Plan Group Name or Leave Blank for All:', 'A', 'Plan / Group (GRP)\Plan Grp Name (GRP)', 'Mono', 'Free', 'Persistent', NULL, 'User:0', 'Optional')
    AND
    CLM.STATUS_C  =  3
    AND
    CASE
-	WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
+    WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
 END  BETWEEN  (CASE
-    WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='t' THEN
-		trunc(sysdate)
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) ) Like 't-%' THEN
-			trunc(sysdate)-to_number(Substr(( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) ),3,3))
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='wb' THEN
+    WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='t' THEN
+        trunc(sysdate)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') ) Like 't-%' THEN
+            trunc(sysdate)-to_number(Substr(( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') ),3,3))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='wb' THEN
                           TRUNC(sysdate, 'IW')-1
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='wb-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='wb-1' THEN
                           TRUNC(sysdate, 'IW')-8
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='we' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='we' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW'),'SATURDAY')
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='we-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='we-1' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW')-8,'SATURDAY')
-    WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='mb' THEN
-		trunc(sysdate,'MM')
-    WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='me' THEN
-		trunc(last_day(sysdate))
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='mb-1' THEN
-		trunc(trunc(sysdate, 'MM') - 1, 'MM')
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='me-1' THEN
-		(trunc(sysdate, 'MM') - 1)
-		 WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='mb-2' THEN
-		add_months(trunc(sysdate, 'MM'), - 2)
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='me-2' THEN
-		(last_day(add_months (sysdate,-2)))
-		WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='yb' THEN
-		trunc(sysdate,'YY')
-		 WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='yb-1' THEN
-		trunc(trunc(sysdate, 'YY') - 1, 'YY')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='mb' THEN
+        trunc(sysdate,'MM')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='me' THEN
+        trunc(last_day(sysdate))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='mb-1' THEN
+        trunc(trunc(sysdate, 'MM') - 1, 'MM')
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='me-1' THEN
+        (trunc(sysdate, 'MM') - 1)
+         WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='mb-2' THEN
+        add_months(trunc(sysdate, 'MM'), - 2)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='me-2' THEN
+        (last_day(add_months (sysdate,-2)))
+        WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='yb' THEN
+        trunc(sysdate,'YY')
+         WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='yb-1' THEN
+        trunc(trunc(sysdate, 'YY') - 1, 'YY')
  else
-    TO_DATE(( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) ),'MM/dd/yyyy')
+    TO_DATE(( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') ),'MM/dd/yyyy')
 END)  AND  (CASE
-    WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='t' THEN
-		trunc(sysdate)
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) ) Like't-%' THEN
-		trunc(sysdate)-to_number(Substr(( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) ),3,3))
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='wb' THEN
+    WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='t' THEN
+        trunc(sysdate)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') ) Like't-%' THEN
+        trunc(sysdate)-to_number(Substr(( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') ),3,3))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='wb' THEN
                           TRUNC(sysdate, 'IW')-1
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='wb-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='wb-1' THEN
                           TRUNC(sysdate, 'IW')-8
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='we' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='we' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW'),'SATURDAY')
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='we-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='we-1' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW')-8,'SATURDAY')
-    WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='mb' THEN
-		trunc(sysdate,'MM')
-    WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='me' THEN
-		trunc(last_day(sysdate))
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='mb-1' THEN
-		trunc(trunc(sysdate, 'MM') - 1, 'MM')
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='me-1' THEN
-		(trunc(sysdate, 'MM') - 1)
-		WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='mb-2' THEN
-		add_months(trunc(sysdate, 'MM'), - 2)
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='me-2' THEN
-		(last_day(add_months (sysdate,-2)))
-		WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='yb' THEN
-		trunc(sysdate,'YY')
-		 WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='yb-1' THEN
-		trunc(trunc(sysdate, 'YY') - 1, 'YY')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='mb' THEN
+        trunc(sysdate,'MM')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='me' THEN
+        trunc(last_day(sysdate))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='mb-1' THEN
+        trunc(trunc(sysdate, 'MM') - 1, 'MM')
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='me-1' THEN
+        (trunc(sysdate, 'MM') - 1)
+        WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='mb-2' THEN
+        add_months(trunc(sysdate, 'MM'), - 2)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='me-2' THEN
+        (last_day(add_months (sysdate,-2)))
+        WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='yb' THEN
+        trunc(sysdate,'YY')
+         WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='yb-1' THEN
+        trunc(trunc(sysdate, 'YY') - 1, 'YY')
  else
-    TO_DATE(( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) ),'MM/dd/yyyy')
+    TO_DATE(( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') ),'MM/dd/yyyy')
 END)
    AND
    (
-    EOB_CODE.MNEMONIC  IN  @Prompt('Enter Claim Denial Code(s) or Leave Blank for All:','A','Claim EOB (EOB)\Eob Code Id (CLM_EOB)\Mnemonic (EOB_CODE)',Multi,Free,Persistent,,User:8,Optional)
+    EOB_CODE.MNEMONIC  IN  (PARAM_VALUE('Enter Claim Denial Code(s) or Leave Blank for All:', 'A', 'Claim EOB (EOB)\Eob Code Id (CLM_EOB)\Mnemonic (EOB_CODE)', 'Multi', 'Free', 'Persistent', NULL, 'User:8', 'Optional'))
     OR
-    EOB_CODE2.MNEMONIC  IN  @Prompt('Enter Claim Denial Code(s) or Leave Blank for All:','A','Claim Line (CLD)\Claim Line EOB\Eob Code Id (CLD)\Mnemonic (CLD)',Multi,Free,Persistent,,User:7,Optional)
+    EOB_CODE2.MNEMONIC  IN  (PARAM_VALUE('Enter Claim Denial Code(s) or Leave Blank for All:', 'A', 'Claim Line (CLD)\Claim Line EOB\Eob Code Id (CLD)\Mnemonic (CLD)', 'Multi', 'Free', 'Persistent', NULL, 'User:7', 'Optional'))
    )
    AND
-   CLMPOS.NAME  IN  @Prompt('Enter POS Type(s) or Leave Blank for All:','A','Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)',Multi,Free,Persistent,,User:9,Optional)
+   CLMPOS.NAME  IN  (PARAM_VALUE('Enter POS Type(s) or Leave Blank for All:', 'A', 'Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)', 'Multi', 'Free', 'Persistent', NULL, 'User:9', 'Optional'))
    AND
    CASE
 WHEN CLM.ORIG_REV_CLM_ID IS NOT NULL
@@ -597,19 +597,19 @@ WHEN CLM.ORIG_ADJST_CLM_ID IS NOT NULL  AND CLM.ORIG_REV_CLM_ID IS NULL AND CLM.
 WHEN CLM.ORIG_ADJST_CLM_ID IS NULL AND CLM.ORIG_REV_CLM_ID IS NULL AND  "LEGACY_ADJST"."CLAIM_ID" IS  NULL
     THEN 'Original Claim'
 ELSE NULL
-END  IN  @Prompt('Enter Claim Adjudication Type:','A','Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)',Multi,Free,Persistent,,User:13)
+END  IN  (PARAM_VALUE('Enter Claim Adjudication Type:', 'A', 'Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)', 'Multi', 'Free', 'Persistent', NULL, 'User:13'))
    AND
-   NVL(CLM_TRAIT.NAME,'KFHP')  IN  @Prompt('Enter ANIC Claim Trait or Leave Blank for All:','A','Claim Header (CLM)\Company Code (CLM)',Multi,Free,Persistent,,User:10,Optional)
+   NVL(CLM_TRAIT.NAME,'KFHP')  IN  (PARAM_VALUE('Enter ANIC Claim Trait or Leave Blank for All:', 'A', 'Claim Header (CLM)\Company Code (CLM)', 'Multi', 'Free', 'Persistent', NULL, 'User:10', 'Optional'))
    AND
-   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  @Prompt('Enter Dental Indicator (Y/N):','A','Claim Header (CLM)\Dental Info Yn (CLM2)',Multi,Free,Persistent,{'N'},User:11,Optional)
+   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  (PARAM_VALUE('Enter Dental Indicator (Y/N):', 'A', 'Claim Header (CLM)\Dental Info Yn (CLM2)', 'Multi', 'Free', 'Persistent', 'N', 'User:11', 'Optional'))
    AND
    CLM.ADJST_CLM_ID  Is Null
    AND
-   ZC_REG_CD.NAME  IN  @Prompt('Enter CO Service Area Name:','A','Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)',Multi,Free,Persistent,,User:12,Optional)
+   ZC_REG_CD.NAME  IN  (PARAM_VALUE('Enter CO Service Area Name:', 'A', 'Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)', 'Multi', 'Free', 'Persistent', NULL, 'User:12', 'Optional'))
    AND
    ( ( CASE
 WHEN D_VM.PLACE_OF_SERVICE_ID IS NOT NULL THEN 'Y' ELSE 'N'
-END ) in @Prompt(Visiting Member) OR ( 'ALL') IN @Prompt(Visiting Member)  )
+END ) in (PARAM_VALUE('Visiting Member')) OR ( 'ALL') IN (PARAM_VALUE('Visiting Member'))  )
   )
 --END--
 SELECT DISTINCT
@@ -639,9 +639,9 @@ FROM
    LEFT OUTER JOIN CLARITY_VENDOR  VENCLM ON (VENCLM.VENDOR_ID=CLM.VENDOR_ID)
    LEFT OUTER JOIN (
   select t1.vendor_id,t1.line,t1.TAX_ID
-from	vendor_tax_id   t1 ,
-(select	vendor_id,max(line) as line from	vendor_tax_id group	by vendor_id)   t2	Where 	t1.vendor_id=t2.vendor_id 	and	t1.line=t2.line
-group	by  t1.vendor_id,t1.line,t1.TAX_ID
+from    vendor_tax_id   t1 ,
+(select vendor_id,max(line) as line from    vendor_tax_id group by vendor_id)   t2  Where   t1.vendor_id=t2.vendor_id   and t1.line=t2.line
+group   by  t1.vendor_id,t1.line,t1.TAX_ID
   )  D_VTN ON (VENCLM.VENDOR_ID=D_VTN.VENDOR_ID)
    LEFT OUTER JOIN (
   SELECT DISTINCT VENDOR_ID,  PLACE_OF_SERVICE_ID FROM VENDOR_POS
@@ -652,12 +652,12 @@ SELECT distinct
    ,999 as PLACE_OF_SERVICE_ID
 from
    vendor_tax_id t1 inner join
-		(
-		select    vendor_id,
-		max(line) as line
-		from      vendor_tax_id
-		group    by vendor_id
-		)  t2 on             t1.vendor_id=t2.vendor_id
+        (
+        select    vendor_id,
+        max(line) as line
+        from      vendor_tax_id
+        group    by vendor_id
+        )  t2 on             t1.vendor_id=t2.vendor_id
                              and        t1.line=t2.line
 WHERE
   t1.TAX_ID  = '811559375'
@@ -687,98 +687,98 @@ else 'Contact BO Developers' end ) IN ('SC','NC') AND  EOB_CODE.MNEMONIC IN ('CI
    LEFT OUTER JOIN AP_CLAIM_CHECK  CLM_CHK ON (CLM.CLAIM_ID=CLM_CHK.CLAIM_ID)
    LEFT OUTER JOIN AP_CHECK  CKR ON (CLM_CHK.CHECK_ID=CKR.CHECK_ID)
 WHERE
-( COALESCE(CLM.WORKFLOW_C,0) IN @Prompt(P_WorkflowTypeInclude)  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In @Prompt(P_CCA-TPMG)  )
+( COALESCE(CLM.WORKFLOW_C,0) IN (PARAM_VALUE('P_WorkflowTypeInclude'))  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In (PARAM_VALUE('P_CCA-TPMG'))  )
   AND
   (
-   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  @Prompt('Enter Product Type or Leave Blank for All:','A','Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type',Multi,Free,Persistent,,User:1,Optional)
+   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  (PARAM_VALUE('Enter Product Type or Leave Blank for All:', 'A', 'Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type', 'Multi', 'Free', 'Persistent', NULL, 'User:1', 'Optional'))
    AND
-   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  @Prompt('Enter Line of Business or Leave Blank for All:','A','Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)',Mono,Free,Persistent,,User:2,Optional)
+   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  PARAM_VALUE('Enter Line of Business or Leave Blank for All:', 'A', 'Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:2', 'Optional')
    AND
-   SERREN.PROV_NAME  LIKE  @Prompt('Enter Provider Name or Leave Blank for All:','A','Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)',Mono,Free,Persistent,,User:3,Optional)
+   SERREN.PROV_NAME  LIKE  PARAM_VALUE('Enter Provider Name or Leave Blank for All:', 'A', 'Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)', 'Mono', 'Free', 'Persistent', NULL, 'User:3', 'Optional')
    AND
-   SERREN_2.NPI  LIKE  @Prompt('Enter Provider ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:4,Optional)
+   SERREN_2.NPI  LIKE  PARAM_VALUE('Enter Provider ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:4', 'Optional')
    AND
-   D_VTN.TAX_ID  LIKE  @Prompt('Enter Vendor Tax ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:5,Optional)
+   D_VTN.TAX_ID  LIKE  PARAM_VALUE('Enter Vendor Tax ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:5', 'Optional')
    AND
-   VENCLM.VENDOR_NAME  LIKE  @Prompt('Enter Vendor Name or Leave Blank for All:','A','Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)',Mono,Free,Persistent,,User:6,Optional)
+   VENCLM.VENDOR_NAME  LIKE  PARAM_VALUE('Enter Vendor Name or Leave Blank for All:', 'A', 'Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:6', 'Optional')
    AND
-   GRP.PLAN_GRP_NAME  LIKE  @Prompt('Enter Plan Group Name or Leave Blank for All:','A','Plan / Group (GRP)\Plan Grp Name (GRP)',Mono,Free,Persistent,,User:0,Optional)
+   GRP.PLAN_GRP_NAME  LIKE  PARAM_VALUE('Enter Plan Group Name or Leave Blank for All:', 'A', 'Plan / Group (GRP)\Plan Grp Name (GRP)', 'Mono', 'Free', 'Persistent', NULL, 'User:0', 'Optional')
    AND
    CLM.STATUS_C  =  3
    AND
    CASE
-	WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
+    WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
 END  BETWEEN  (CASE
-    WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='t' THEN
-		trunc(sysdate)
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) ) Like 't-%' THEN
-			trunc(sysdate)-to_number(Substr(( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) ),3,3))
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='wb' THEN
+    WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='t' THEN
+        trunc(sysdate)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') ) Like 't-%' THEN
+            trunc(sysdate)-to_number(Substr(( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') ),3,3))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='wb' THEN
                           TRUNC(sysdate, 'IW')-1
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='wb-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='wb-1' THEN
                           TRUNC(sysdate, 'IW')-8
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='we' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='we' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW'),'SATURDAY')
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='we-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='we-1' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW')-8,'SATURDAY')
-    WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='mb' THEN
-		trunc(sysdate,'MM')
-    WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='me' THEN
-		trunc(last_day(sysdate))
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='mb-1' THEN
-		trunc(trunc(sysdate, 'MM') - 1, 'MM')
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='me-1' THEN
-		(trunc(sysdate, 'MM') - 1)
-		 WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='mb-2' THEN
-		add_months(trunc(sysdate, 'MM'), - 2)
- WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='me-2' THEN
-		(last_day(add_months (sysdate,-2)))
-		WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='yb' THEN
-		trunc(sysdate,'YY')
-		 WHEN ( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) )='yb-1' THEN
-		trunc(trunc(sysdate, 'YY') - 1, 'YY')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='mb' THEN
+        trunc(sysdate,'MM')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='me' THEN
+        trunc(last_day(sysdate))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='mb-1' THEN
+        trunc(trunc(sysdate, 'MM') - 1, 'MM')
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='me-1' THEN
+        (trunc(sysdate, 'MM') - 1)
+         WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='mb-2' THEN
+        add_months(trunc(sysdate, 'MM'), - 2)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='me-2' THEN
+        (last_day(add_months (sysdate,-2)))
+        WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='yb' THEN
+        trunc(sysdate,'YY')
+         WHEN ( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') )='yb-1' THEN
+        trunc(trunc(sysdate, 'YY') - 1, 'YY')
  else
-    TO_DATE(( @Prompt(Enter Claim Finalized From Date:§(relative or absolute date§)) ),'MM/dd/yyyy')
+    TO_DATE(( PARAM_VALUE('Enter Claim Finalized From Date:(relative or absolute date)') ),'MM/dd/yyyy')
 END)  AND  (CASE
-    WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='t' THEN
-		trunc(sysdate)
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) ) Like't-%' THEN
-		trunc(sysdate)-to_number(Substr(( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) ),3,3))
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='wb' THEN
+    WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='t' THEN
+        trunc(sysdate)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') ) Like't-%' THEN
+        trunc(sysdate)-to_number(Substr(( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') ),3,3))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='wb' THEN
                           TRUNC(sysdate, 'IW')-1
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='wb-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='wb-1' THEN
                           TRUNC(sysdate, 'IW')-8
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='we' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='we' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW'),'SATURDAY')
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='we-1' THEN
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='we-1' THEN
                      NEXT_DAY(TRUNC(sysdate,'IW')-8,'SATURDAY')
-    WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='mb' THEN
-		trunc(sysdate,'MM')
-    WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='me' THEN
-		trunc(last_day(sysdate))
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='mb-1' THEN
-		trunc(trunc(sysdate, 'MM') - 1, 'MM')
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='me-1' THEN
-		(trunc(sysdate, 'MM') - 1)
-		WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='mb-2' THEN
-		add_months(trunc(sysdate, 'MM'), - 2)
- WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='me-2' THEN
-		(last_day(add_months (sysdate,-2)))
-		WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='yb' THEN
-		trunc(sysdate,'YY')
-		 WHEN ( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) )='yb-1' THEN
-		trunc(trunc(sysdate, 'YY') - 1, 'YY')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='mb' THEN
+        trunc(sysdate,'MM')
+    WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='me' THEN
+        trunc(last_day(sysdate))
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='mb-1' THEN
+        trunc(trunc(sysdate, 'MM') - 1, 'MM')
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='me-1' THEN
+        (trunc(sysdate, 'MM') - 1)
+        WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='mb-2' THEN
+        add_months(trunc(sysdate, 'MM'), - 2)
+ WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='me-2' THEN
+        (last_day(add_months (sysdate,-2)))
+        WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='yb' THEN
+        trunc(sysdate,'YY')
+         WHEN ( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') )='yb-1' THEN
+        trunc(trunc(sysdate, 'YY') - 1, 'YY')
  else
-    TO_DATE(( @Prompt(Enter Claim Finalized Thru Date:§(relative or absolute date§)) ),'MM/dd/yyyy')
+    TO_DATE(( PARAM_VALUE('Enter Claim Finalized Thru Date:(relative or absolute date)') ),'MM/dd/yyyy')
 END)
    AND
    (
-    EOB_CODE.MNEMONIC  IN  @Prompt('Enter Claim Denial Code(s) or Leave Blank for All:','A','Claim EOB (EOB)\Eob Code Id (CLM_EOB)\Mnemonic (EOB_CODE)',Multi,Free,Persistent,,User:8,Optional)
+    EOB_CODE.MNEMONIC  IN  (PARAM_VALUE('Enter Claim Denial Code(s) or Leave Blank for All:', 'A', 'Claim EOB (EOB)\Eob Code Id (CLM_EOB)\Mnemonic (EOB_CODE)', 'Multi', 'Free', 'Persistent', NULL, 'User:8', 'Optional'))
     OR
-    EOB_CODE2.MNEMONIC  IN  @Prompt('Enter Claim Denial Code(s) or Leave Blank for All:','A','Claim Line (CLD)\Claim Line EOB\Eob Code Id (CLD)\Mnemonic (CLD)',Multi,Free,Persistent,,User:7,Optional)
+    EOB_CODE2.MNEMONIC  IN  (PARAM_VALUE('Enter Claim Denial Code(s) or Leave Blank for All:', 'A', 'Claim Line (CLD)\Claim Line EOB\Eob Code Id (CLD)\Mnemonic (CLD)', 'Multi', 'Free', 'Persistent', NULL, 'User:7', 'Optional'))
    )
    AND
-   CLMPOS.NAME  IN  @Prompt('Enter POS Type(s) or Leave Blank for All:','A','Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)',Multi,Free,Persistent,,User:9,Optional)
+   CLMPOS.NAME  IN  (PARAM_VALUE('Enter POS Type(s) or Leave Blank for All:', 'A', 'Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)', 'Multi', 'Free', 'Persistent', NULL, 'User:9', 'Optional'))
    AND
    EOB_CODE.CODE_TYPE_C  IN  ( 2  )
    AND
@@ -792,19 +792,19 @@ WHEN CLM.ORIG_ADJST_CLM_ID IS NOT NULL  AND CLM.ORIG_REV_CLM_ID IS NULL AND CLM.
 WHEN CLM.ORIG_ADJST_CLM_ID IS NULL AND CLM.ORIG_REV_CLM_ID IS NULL AND  "LEGACY_ADJST"."CLAIM_ID" IS  NULL
     THEN 'Original Claim'
 ELSE NULL
-END  IN  @Prompt('Enter Claim Adjudication Type:','A','Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)',Multi,Free,Persistent,,User:13)
+END  IN  (PARAM_VALUE('Enter Claim Adjudication Type:', 'A', 'Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)', 'Multi', 'Free', 'Persistent', NULL, 'User:13'))
    AND
-   NVL(CLM_TRAIT.NAME,'KFHP')  IN  @Prompt('Enter ANIC Claim Trait or Leave Blank for All:','A','Claim Header (CLM)\Company Code (CLM)',Multi,Free,Persistent,,User:10,Optional)
+   NVL(CLM_TRAIT.NAME,'KFHP')  IN  (PARAM_VALUE('Enter ANIC Claim Trait or Leave Blank for All:', 'A', 'Claim Header (CLM)\Company Code (CLM)', 'Multi', 'Free', 'Persistent', NULL, 'User:10', 'Optional'))
    AND
-   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  @Prompt('Enter Dental Indicator (Y/N):','A','Claim Header (CLM)\Dental Info Yn (CLM2)',Multi,Free,Persistent,{'N'},User:11,Optional)
+   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  (PARAM_VALUE('Enter Dental Indicator (Y/N):', 'A', 'Claim Header (CLM)\Dental Info Yn (CLM2)', 'Multi', 'Free', 'Persistent', 'N', 'User:11', 'Optional'))
    AND
    CLM.ADJST_CLM_ID  Is Null
    AND
-   ZC_REG_CD.NAME  IN  @Prompt('Enter CO Service Area Name:','A','Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)',Multi,Free,Persistent,,User:12,Optional)
+   ZC_REG_CD.NAME  IN  (PARAM_VALUE('Enter CO Service Area Name:', 'A', 'Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)', 'Multi', 'Free', 'Persistent', NULL, 'User:12', 'Optional'))
    AND
    ( ( CASE
 WHEN D_VM.PLACE_OF_SERVICE_ID IS NOT NULL THEN 'Y' ELSE 'N'
-END ) in @Prompt(Visiting Member) OR ( 'ALL') IN @Prompt(Visiting Member)  )
+END ) in (PARAM_VALUE('Visiting Member')) OR ( 'ALL') IN (PARAM_VALUE('Visiting Member'))  )
   )
 --END--
 SELECT DISTINCT
@@ -823,7 +823,7 @@ SELECT DISTINCT
   CKR.CHECK_STATUS_C,
   CLM_APSTS.ABBR,
   CASE
-	WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
+    WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
 END,
   CASE
 WHEN ( case when D_CLARITY_DATABASE.CLARITY_DATABASE like '%HCCLHI%' then 'HI'
@@ -933,7 +933,7 @@ END,
   Upper(SERRENADDR.CITY),
   SERRENST.ABBR,
     case
-	when D_AA_INDICATOR.CLAIM_ID is null
+    when D_AA_INDICATOR.CLAIM_ID is null
 then  'Not AA'
 else 'AA'  end,
   ZC_REG_CD.NAME,
@@ -1013,9 +1013,9 @@ group by PROV_ID,SPECIALTY_C
    LEFT OUTER JOIN CLARITY_VENDOR  VENCLM ON (VENCLM.VENDOR_ID=CLM.VENDOR_ID)
    LEFT OUTER JOIN (
   select t1.vendor_id,t1.line,t1.TAX_ID
-from	vendor_tax_id   t1 ,
-(select	vendor_id,max(line) as line from	vendor_tax_id group	by vendor_id)   t2	Where 	t1.vendor_id=t2.vendor_id 	and	t1.line=t2.line
-group	by  t1.vendor_id,t1.line,t1.TAX_ID
+from    vendor_tax_id   t1 ,
+(select vendor_id,max(line) as line from    vendor_tax_id group by vendor_id)   t2  Where   t1.vendor_id=t2.vendor_id   and t1.line=t2.line
+group   by  t1.vendor_id,t1.line,t1.TAX_ID
   )  D_VTN ON (VENCLM.VENDOR_ID=D_VTN.VENDOR_ID)
    LEFT OUTER JOIN (
   SELECT DISTINCT VENDOR_ID,  PLACE_OF_SERVICE_ID FROM VENDOR_POS
@@ -1026,12 +1026,12 @@ SELECT distinct
    ,999 as PLACE_OF_SERVICE_ID
 from
    vendor_tax_id t1 inner join
-		(
-		select    vendor_id,
-		max(line) as line
-		from      vendor_tax_id
-		group    by vendor_id
-		)  t2 on             t1.vendor_id=t2.vendor_id
+        (
+        select    vendor_id,
+        max(line) as line
+        from      vendor_tax_id
+        group    by vendor_id
+        )  t2 on             t1.vendor_id=t2.vendor_id
                              and        t1.line=t2.line
 WHERE
   t1.TAX_ID  = '811559375'
@@ -1046,23 +1046,23 @@ CLAIM_ID
 FROM  (SELECT DISTINCT
         CLM_EOB.CLAIM_ID
         ,CASE WHEN MAX(EOB.ROUTE_FROM_DISC_C)=2 THEN 'Yes' ELSE
-		'No'
-		END AS PAT_LIABILITY
+        'No'
+        END AS PAT_LIABILITY
         ,EOB.MNEMONIC
         ,RMC.RMC_EXTERNAL_ID||'/'||RMK.ABBR AS REMIT_CD
         FROM
         AP_CLAIM_PX_EOBS CLM_EOB,
         CLARITY_EOB_CODE EOB,
-		CLARITY_RMC RMC,
-		ZC_REMARK_CODE RMK
+        CLARITY_RMC RMC,
+        ZC_REMARK_CODE RMK
         WHERE
         CLM_EOB.EOB_CODE_ID=EOB.EOB_CODE_ID
-		AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
-		AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
+        AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
+        AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
         --1 IS PEND CODE    2 IS DENIAL CODE        3 IS INFO CODE
         AND EOB.CODE_TYPE_C=3
         GROUP BY CLM_EOB.CLAIM_ID,EOB.ROUTE_FROM_DISC_C,EOB.MNEMONIC,RMC.RMC_EXTERNAL_ID,RMK.ABBR
-		)
+        )
 GROUP BY CLAIM_ID,PAT_LIABILITY
   )  LISTAGG_DTL_INFO ON (CLM.CLAIM_ID=LISTAGG_DTL_INFO.CLAIM_ID)
    LEFT OUTER JOIN (
@@ -1098,59 +1098,59 @@ FROM  (SELECT DISTINCT
         FROM
         AP_CLAIM_EOB_CODE CLM_EOB,
         CLARITY_EOB_CODE EOB,
-		CLARITY_RMC RMC,
-		ZC_REMARK_CODE RMK
+        CLARITY_RMC RMC,
+        ZC_REMARK_CODE RMK
         WHERE
         CLM_EOB.EOB_CODE_ID=EOB.EOB_CODE_ID
-		AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
-		AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
+        AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
+        AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
         AND CLM_EOB.RESOLUTION_DATE IS NULL
         --1 IS PEND CODE    2 IS DENIAL CODE        3 IS INFO CODE
         AND EOB.CODE_TYPE_C=3
-		)
+        )
 GROUP BY CLAIM_ID
   )  LISTAGG_HDR_INFO ON (CLM.CLAIM_ID=LISTAGG_HDR_INFO.CLAIM_ID)
    LEFT OUTER JOIN AP_CLAIM_CHECK  CLM_CHK ON (CLM.CLAIM_ID=CLM_CHK.CLAIM_ID)
    LEFT OUTER JOIN AP_CHECK  CKR ON (CLM_CHK.CHECK_ID=CKR.CHECK_ID)
 WHERE
-( COALESCE(CLM.WORKFLOW_C,0) IN @Prompt(P_WorkflowTypeInclude)  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In @Prompt(P_CCA-TPMG)  )
+( COALESCE(CLM.WORKFLOW_C,0) IN (PARAM_VALUE('P_WorkflowTypeInclude'))  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In (PARAM_VALUE('P_CCA-TPMG'))  )
   AND
   (
-   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  @Prompt('Enter Product Type or Leave Blank for All:','A','Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type',Multi,Free,Persistent,,User:1,Optional)
+   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  (PARAM_VALUE('Enter Product Type or Leave Blank for All:', 'A', 'Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type', 'Multi', 'Free', 'Persistent', NULL, 'User:1', 'Optional'))
    AND
-   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  @Prompt('Enter Line of Business or Leave Blank for All:','A','Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)',Mono,Free,Persistent,,User:2,Optional)
+   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  PARAM_VALUE('Enter Line of Business or Leave Blank for All:', 'A', 'Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:2', 'Optional')
    AND
-   SERREN.PROV_NAME  LIKE  @Prompt('Enter Provider Name or Leave Blank for All:','A','Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)',Mono,Free,Persistent,,User:3,Optional)
+   SERREN.PROV_NAME  LIKE  PARAM_VALUE('Enter Provider Name or Leave Blank for All:', 'A', 'Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)', 'Mono', 'Free', 'Persistent', NULL, 'User:3', 'Optional')
    AND
-   SERREN_2.NPI  LIKE  @Prompt('Enter Provider ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:4,Optional)
+   SERREN_2.NPI  LIKE  PARAM_VALUE('Enter Provider ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:4', 'Optional')
    AND
-   D_VTN.TAX_ID  LIKE  @Prompt('Enter Vendor Tax ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:5,Optional)
+   D_VTN.TAX_ID  LIKE  PARAM_VALUE('Enter Vendor Tax ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:5', 'Optional')
    AND
-   VENCLM.VENDOR_NAME  LIKE  @Prompt('Enter Vendor Name or Leave Blank for All:','A','Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)',Mono,Free,Persistent,,User:6,Optional)
+   VENCLM.VENDOR_NAME  LIKE  PARAM_VALUE('Enter Vendor Name or Leave Blank for All:', 'A', 'Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:6', 'Optional')
    AND
-   GRP.PLAN_GRP_NAME  LIKE  @Prompt('Enter Plan Group Name or Leave Blank for All:','A','Plan / Group (GRP)\Plan Grp Name (GRP)',Mono,Free,Persistent,,User:0,Optional)
+   GRP.PLAN_GRP_NAME  LIKE  PARAM_VALUE('Enter Plan Group Name or Leave Blank for All:', 'A', 'Plan / Group (GRP)\Plan Grp Name (GRP)', 'Mono', 'Free', 'Persistent', NULL, 'User:0', 'Optional')
    AND
    CLM.STATUS_C  =  3
    AND
    CASE
-	WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
+    WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
 END  Is Null
    AND
-   CLMPOS.NAME  IN  @Prompt('Enter POS Type(s) or Leave Blank for All:','A','Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)',Multi,Free,Persistent,,User:7,Optional)
+   CLMPOS.NAME  IN  (PARAM_VALUE('Enter POS Type(s) or Leave Blank for All:', 'A', 'Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)', 'Multi', 'Free', 'Persistent', NULL, 'User:7', 'Optional'))
    AND
    (
-    EOB_CODE2.MNEMONIC  IN  @Prompt('Enter Claim Denial Code(s) or Leave Blank for All:','A','Claim Line (CLD)\Claim Line EOB\Eob Code Id (CLD)\Mnemonic (CLD)',Multi,Free,Persistent,,User:8,Optional)
+    EOB_CODE2.MNEMONIC  IN  (PARAM_VALUE('Enter Claim Denial Code(s) or Leave Blank for All:', 'A', 'Claim Line (CLD)\Claim Line EOB\Eob Code Id (CLD)\Mnemonic (CLD)', 'Multi', 'Free', 'Persistent', NULL, 'User:8', 'Optional'))
     OR
-    EOB_CODE.MNEMONIC  IN  @Prompt('Enter Claim Denial Code(s) or Leave Blank for All:','A','Claim EOB (EOB)\Eob Code Id (CLM_EOB)\Mnemonic (EOB_CODE)',Multi,Free,Persistent,,User:9,Optional)
+    EOB_CODE.MNEMONIC  IN  (PARAM_VALUE('Enter Claim Denial Code(s) or Leave Blank for All:', 'A', 'Claim EOB (EOB)\Eob Code Id (CLM_EOB)\Mnemonic (EOB_CODE)', 'Multi', 'Free', 'Persistent', NULL, 'User:9', 'Optional'))
    )
    AND
-   NVL(CLM_TRAIT.NAME,'KFHP')  IN  @Prompt('Enter ANIC Claim Trait or Leave Blank for All:','A','Claim Header (CLM)\Company Code (CLM)',Multi,Free,Persistent,,User:10,Optional)
+   NVL(CLM_TRAIT.NAME,'KFHP')  IN  (PARAM_VALUE('Enter ANIC Claim Trait or Leave Blank for All:', 'A', 'Claim Header (CLM)\Company Code (CLM)', 'Multi', 'Free', 'Persistent', NULL, 'User:10', 'Optional'))
    AND
-   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  @Prompt('Enter Dental Indicator (Y/N):','A','Claim Header (CLM)\Dental Info Yn (CLM2)',Multi,Free,Persistent,{'N'},User:11,Optional)
+   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  (PARAM_VALUE('Enter Dental Indicator (Y/N):', 'A', 'Claim Header (CLM)\Dental Info Yn (CLM2)', 'Multi', 'Free', 'Persistent', 'N', 'User:11', 'Optional'))
    AND
    CLM.ADJST_CLM_ID  Is Null
    AND
-   ZC_REG_CD.NAME  IN  @Prompt('Enter CO Service Area Name:','A','Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)',Multi,Free,Persistent,,User:12,Optional)
+   ZC_REG_CD.NAME  IN  (PARAM_VALUE('Enter CO Service Area Name:', 'A', 'Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)', 'Multi', 'Free', 'Persistent', NULL, 'User:12', 'Optional'))
    AND
    CASE
 WHEN CLM.ORIG_REV_CLM_ID IS NOT NULL
@@ -1162,11 +1162,11 @@ WHEN CLM.ORIG_ADJST_CLM_ID IS NOT NULL  AND CLM.ORIG_REV_CLM_ID IS NULL AND CLM.
 WHEN CLM.ORIG_ADJST_CLM_ID IS NULL AND CLM.ORIG_REV_CLM_ID IS NULL AND  "LEGACY_ADJST"."CLAIM_ID" IS  NULL
     THEN 'Original Claim'
 ELSE NULL
-END  IN  @Prompt('Enter Claim Adjudication Type:','A','Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)',Multi,Free,Persistent,{'Original Claim'},User:13)
+END  IN  (PARAM_VALUE('Enter Claim Adjudication Type:', 'A', 'Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)', 'Multi', 'Free', 'Persistent', 'Original Claim', 'User:13'))
    AND
    ( ( CASE
 WHEN D_VM.PLACE_OF_SERVICE_ID IS NOT NULL THEN 'Y' ELSE 'N'
-END ) in @Prompt(Visiting Member) OR ( 'ALL') IN @Prompt(Visiting Member)  )
+END ) in (PARAM_VALUE('Visiting Member')) OR ( 'ALL') IN (PARAM_VALUE('Visiting Member'))  )
   )
 --END--
 SELECT DISTINCT
@@ -1275,7 +1275,7 @@ END,
   (case when length(CLD.MODIFIERS) > 6 then substr(CLD.MODIFIERS,7,2) else '0' end),
   (case when length(CLD.MODIFIERS) > 9 then substr(CLD.MODIFIERS,10,2) else '0' end ),
   CASE
-	WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
+    WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
 END,
   CLM.DATE_RECEIVED,
   CLM.SERVICE_END_DATE,
@@ -1297,7 +1297,7 @@ END,
   Upper(SERRENADDR.CITY),
   SERRENST.ABBR,
     case
-	when D_AA_INDICATOR.CLAIM_ID is null
+    when D_AA_INDICATOR.CLAIM_ID is null
 then  'Not AA'
 else 'AA'  end,
   ZC_REG_CD.NAME,
@@ -1378,9 +1378,9 @@ group by PROV_ID,SPECIALTY_C
    LEFT OUTER JOIN CLARITY_VENDOR  VENCLM ON (VENCLM.VENDOR_ID=CLM.VENDOR_ID)
    LEFT OUTER JOIN (
   select t1.vendor_id,t1.line,t1.TAX_ID
-from	vendor_tax_id   t1 ,
-(select	vendor_id,max(line) as line from	vendor_tax_id group	by vendor_id)   t2	Where 	t1.vendor_id=t2.vendor_id 	and	t1.line=t2.line
-group	by  t1.vendor_id,t1.line,t1.TAX_ID
+from    vendor_tax_id   t1 ,
+(select vendor_id,max(line) as line from    vendor_tax_id group by vendor_id)   t2  Where   t1.vendor_id=t2.vendor_id   and t1.line=t2.line
+group   by  t1.vendor_id,t1.line,t1.TAX_ID
   )  D_VTN ON (VENCLM.VENDOR_ID=D_VTN.VENDOR_ID)
    LEFT OUTER JOIN (
   SELECT DISTINCT VENDOR_ID,  PLACE_OF_SERVICE_ID FROM VENDOR_POS
@@ -1391,12 +1391,12 @@ SELECT distinct
    ,999 as PLACE_OF_SERVICE_ID
 from
    vendor_tax_id t1 inner join
-		(
-		select    vendor_id,
-		max(line) as line
-		from      vendor_tax_id
-		group    by vendor_id
-		)  t2 on             t1.vendor_id=t2.vendor_id
+        (
+        select    vendor_id,
+        max(line) as line
+        from      vendor_tax_id
+        group    by vendor_id
+        )  t2 on             t1.vendor_id=t2.vendor_id
                              and        t1.line=t2.line
 WHERE
   t1.TAX_ID  = '811559375'
@@ -1411,23 +1411,23 @@ CLAIM_ID
 FROM  (SELECT DISTINCT
         CLM_EOB.CLAIM_ID
         ,CASE WHEN MAX(EOB.ROUTE_FROM_DISC_C)=2 THEN 'Yes' ELSE
-		'No'
-		END AS PAT_LIABILITY
+        'No'
+        END AS PAT_LIABILITY
         ,EOB.MNEMONIC
         ,RMC.RMC_EXTERNAL_ID||'/'||RMK.ABBR AS REMIT_CD
         FROM
         AP_CLAIM_PX_EOBS CLM_EOB,
         CLARITY_EOB_CODE EOB,
-		CLARITY_RMC RMC,
-		ZC_REMARK_CODE RMK
+        CLARITY_RMC RMC,
+        ZC_REMARK_CODE RMK
         WHERE
         CLM_EOB.EOB_CODE_ID=EOB.EOB_CODE_ID
-		AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
-		AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
+        AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
+        AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
         --1 IS PEND CODE    2 IS DENIAL CODE        3 IS INFO CODE
         AND EOB.CODE_TYPE_C=3
         GROUP BY CLM_EOB.CLAIM_ID,EOB.ROUTE_FROM_DISC_C,EOB.MNEMONIC,RMC.RMC_EXTERNAL_ID,RMK.ABBR
-		)
+        )
 GROUP BY CLAIM_ID,PAT_LIABILITY
   )  LISTAGG_DTL_INFO ON (CLM.CLAIM_ID=LISTAGG_DTL_INFO.CLAIM_ID)
    LEFT OUTER JOIN (
@@ -1463,16 +1463,16 @@ FROM  (SELECT DISTINCT
         FROM
         AP_CLAIM_EOB_CODE CLM_EOB,
         CLARITY_EOB_CODE EOB,
-		CLARITY_RMC RMC,
-		ZC_REMARK_CODE RMK
+        CLARITY_RMC RMC,
+        ZC_REMARK_CODE RMK
         WHERE
         CLM_EOB.EOB_CODE_ID=EOB.EOB_CODE_ID
-		AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
-		AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
+        AND EOB.REMIT_CODE_ID=RMC.REMIT_CODE_ID(+)
+        AND EOB.REMARK_CODE_C=RMK.REMARK_CODE_C(+)
         AND CLM_EOB.RESOLUTION_DATE IS NULL
         --1 IS PEND CODE    2 IS DENIAL CODE        3 IS INFO CODE
         AND EOB.CODE_TYPE_C=3
-		)
+        )
 GROUP BY CLAIM_ID
   )  LISTAGG_HDR_INFO ON (CLM.CLAIM_ID=LISTAGG_HDR_INFO.CLAIM_ID)
    LEFT OUTER JOIN AP_CLAIM_WQ_ITEM  WQI ON (CLM.CLAIM_ID=WQI.CLAIM_ID)
@@ -1480,22 +1480,22 @@ GROUP BY CLAIM_ID
    LEFT OUTER JOIN AP_CLAIM_CHECK  CLM_CHK ON (CLM.CLAIM_ID=CLM_CHK.CLAIM_ID)
    LEFT OUTER JOIN AP_CHECK  CKR ON (CLM_CHK.CHECK_ID=CKR.CHECK_ID)
 WHERE
-( COALESCE(CLM.WORKFLOW_C,0) IN @Prompt(P_WorkflowTypeInclude)  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In @Prompt(P_CCA-TPMG)  )
+( COALESCE(CLM.WORKFLOW_C,0) IN (PARAM_VALUE('P_WorkflowTypeInclude'))  and COALESCE(CLM_TRAIT_4.NAME,'CCA') In (PARAM_VALUE('P_CCA-TPMG'))  )
   AND
   (
-   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  @Prompt('Enter Product Type or Leave Blank for All:','A','Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type',Multi,Free,Persistent,,User:1,Optional)
+   coalesce(EPPCL.PRODUCT_TYPE ,ZC_PRD_TYP.NAME)  IN  (PARAM_VALUE('Enter Product Type or Leave Blank for All:', 'A', 'Claim Header (CLM)\Claim Header IDs (CLM)\Benefit Plan Id (CLM)\Product Type', 'Multi', 'Free', 'Persistent', NULL, 'User:1', 'Optional'))
    AND
-   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  @Prompt('Enter Line of Business or Leave Blank for All:','A','Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)',Mono,Free,Persistent,,User:2,Optional)
+   nvl(LOBCL.LOB_NAME,'UNKNOWN')  LIKE  PARAM_VALUE('Enter Line of Business or Leave Blank for All:', 'A', 'Claim Header (CLM)\Line Of Business (CLM)\Line Of Business Name (CLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:2', 'Optional')
    AND
-   SERREN.PROV_NAME  LIKE  @Prompt('Enter Provider Name or Leave Blank for All:','A','Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)',Mono,Free,Persistent,,User:3,Optional)
+   SERREN.PROV_NAME  LIKE  PARAM_VALUE('Enter Provider Name or Leave Blank for All:', 'A', 'Provider (PRV)\Rendering (SERREN)\Prov Name (SERREN)', 'Mono', 'Free', 'Persistent', NULL, 'User:3', 'Optional')
    AND
-   SERREN_2.NPI  LIKE  @Prompt('Enter Provider ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:4,Optional)
+   SERREN_2.NPI  LIKE  PARAM_VALUE('Enter Provider ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:4', 'Optional')
    AND
-   D_VTN.TAX_ID  LIKE  @Prompt('Enter Vendor Tax ID or Leave Blank for All:','A',,Mono,Free,Persistent,,User:5,Optional)
+   D_VTN.TAX_ID  LIKE  PARAM_VALUE('Enter Vendor Tax ID or Leave Blank for All:', 'A', NULL, 'Mono', 'Free', 'Persistent', NULL, 'User:5', 'Optional')
    AND
-   VENCLM.VENDOR_NAME  LIKE  @Prompt('Enter Vendor Name or Leave Blank for All:','A','Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)',Mono,Free,Persistent,,User:6,Optional)
+   VENCLM.VENDOR_NAME  LIKE  PARAM_VALUE('Enter Vendor Name or Leave Blank for All:', 'A', 'Claim Header Vendor (VENCLM)\Vendor Name (VENCLM)', 'Mono', 'Free', 'Persistent', NULL, 'User:6', 'Optional')
    AND
-   GRP.PLAN_GRP_NAME  LIKE  @Prompt('Enter Plan Group Name or Leave Blank for All:','A','Plan / Group (GRP)\Plan Grp Name (GRP)',Mono,Free,Persistent,,User:0,Optional)
+   GRP.PLAN_GRP_NAME  LIKE  PARAM_VALUE('Enter Plan Group Name or Leave Blank for All:', 'A', 'Plan / Group (GRP)\Plan Grp Name (GRP)', 'Mono', 'Free', 'Persistent', NULL, 'User:0', 'Optional')
    AND
    (
     (case when length(substr(CLD.MODIFIERS, 0,instr(CLD.MODIFIERS, ',',1,1))) = 0 or  length(substr(CLD.MODIFIERS, 0,instr(CLD.MODIFIERS, ',',1,1))) Is Null  then CLD.MODIFIERS else  substr(CLD.MODIFIERS, 0,instr(CLD.MODIFIERS, ',',1,1)-1) end)  IN  ( '77','76'  )
@@ -1515,15 +1515,15 @@ WHERE
    AND
    EOB_CODE.MNEMONIC  IN  ( 'CED12','CED44'  )
    AND
-   CLMPOS.NAME  IN  @Prompt('Enter POS Type(s) or Leave Blank for All:','A','Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)',Multi,Free,Persistent,,User:7,Optional)
+   CLMPOS.NAME  IN  (PARAM_VALUE('Enter POS Type(s) or Leave Blank for All:', 'A', 'Claim Line (CLD)\Pos Type C (CLD)\Name (CLMPOS)', 'Multi', 'Free', 'Persistent', NULL, 'User:7', 'Optional'))
    AND
-   NVL(CLM_TRAIT.NAME,'KFHP')  IN  @Prompt('Enter ANIC Claim Trait or Leave Blank for All:','A','Claim Header (CLM)\Company Code (CLM)',Multi,Free,Persistent,,User:8,Optional)
+   NVL(CLM_TRAIT.NAME,'KFHP')  IN  (PARAM_VALUE('Enter ANIC Claim Trait or Leave Blank for All:', 'A', 'Claim Header (CLM)\Company Code (CLM)', 'Multi', 'Free', 'Persistent', NULL, 'User:8', 'Optional'))
    AND
-   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  @Prompt('Enter Dental Indicator (Y/N):','A','Claim Header (CLM)\Dental Info Yn (CLM2)',Multi,Free,Persistent,{'N'},User:9,Optional)
+   nvl(CLM2.DENTAL_INFO_YN,'N')  IN  (PARAM_VALUE('Enter Dental Indicator (Y/N):', 'A', 'Claim Header (CLM)\Dental Info Yn (CLM2)', 'Multi', 'Free', 'Persistent', 'N', 'User:9', 'Optional'))
    AND
    CLM.ADJST_CLM_ID  Is Null
    AND
-   ZC_REG_CD.NAME  IN  @Prompt('Enter CO Service Area Name:','A','Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)',Multi,Free,Persistent,,User:10,Optional)
+   ZC_REG_CD.NAME  IN  (PARAM_VALUE('Enter CO Service Area Name:', 'A', 'Plan / Group (GRP)\Current Region Code C (GRP)\Current Region Code Name (GRP)', 'Multi', 'Free', 'Persistent', NULL, 'User:10', 'Optional'))
    AND
    CASE
 WHEN CLM.ORIG_REV_CLM_ID IS NOT NULL
@@ -1535,11 +1535,11 @@ WHEN CLM.ORIG_ADJST_CLM_ID IS NOT NULL  AND CLM.ORIG_REV_CLM_ID IS NULL AND CLM.
 WHEN CLM.ORIG_ADJST_CLM_ID IS NULL AND CLM.ORIG_REV_CLM_ID IS NULL AND  "LEGACY_ADJST"."CLAIM_ID" IS  NULL
     THEN 'Original Claim'
 ELSE NULL
-END  IN  @Prompt('Enter Claim Adjudication Type:','A','Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)',Multi,Free,Persistent,,User:11)
+END  IN  (PARAM_VALUE('Enter Claim Adjudication Type:', 'A', 'Claim Header (CLM)\Clm Adj Type (CLM)\Clm Adj Type Desc (CLM)', 'Multi', 'Free', 'Persistent', NULL, 'User:11'))
    AND
    ( ( CASE
 WHEN D_VM.PLACE_OF_SERVICE_ID IS NOT NULL THEN 'Y' ELSE 'N'
-END ) in @Prompt(Visiting Member) OR ( 'ALL') IN @Prompt(Visiting Member)  )
+END ) in (PARAM_VALUE('Visiting Member')) OR ( 'ALL') IN (PARAM_VALUE('Visiting Member'))  )
   )
 GROUP BY
   CLM_MAP_1.INTERNAL_ID,
@@ -1647,7 +1647,7 @@ END,
   (case when length(CLD.MODIFIERS) > 6 then substr(CLD.MODIFIERS,7,2) else '0' end),
   (case when length(CLD.MODIFIERS) > 9 then substr(CLD.MODIFIERS,10,2) else '0' end ),
   CASE
-	WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
+    WHEN CLM.AP_STS_C=3 THEN CKR.AP_RUN_DATE
 END,
   CLM.DATE_RECEIVED,
   CLM.SERVICE_END_DATE,
@@ -1662,7 +1662,7 @@ END,
   Upper(SERRENADDR.CITY),
   SERRENST.ABBR,
     case
-	when D_AA_INDICATOR.CLAIM_ID is null
+    when D_AA_INDICATOR.CLAIM_ID is null
 then  'Not AA'
 else 'AA'  end,
   ZC_REG_CD.NAME,
@@ -1932,17 +1932,17 @@ select MAX(k+2), COUNT(*), MYCOL from K;
 SELECT * FROM TA2 LEFT JOIN O USING (col1, col2)
 where D.OasSD = 'asdf' And (kj >= 4 OR l < 'sdf');
 
-seLECT 	my as KIO, lio aS
-NE fRom TA2 LEFT OUter 		JOIN O as TA3
+seLECT  my as KIO, lio aS
+NE fRom TA2 LEFT OUter      JOIN O as TA3
 where D.OasSD = 'asdf' And (kj >= 4 OR l < 'sdf');
 
 select * from a
 INNer Join TAB_2 ON i.o = p.l whEre 'sdf'>'asdf' AND
-	(
-	OL<>?
-			OR
-	L NOT IN (SELECT * FROM KJSD)
-	);
+    (
+    OL<>?
+            OR
+    L NOT IN (SELECT * FROM KJSD)
+    );
 
 select * from k where L IS NOT NUll;
 
@@ -2107,4 +2107,3 @@ AND THIS_EMP.WORKDEPT = DINFO.DEPTNO;
 select * from Person where deptname='it' AND NOT (age=24);
 
 select * from unnest(array[4,5,6]) with ordinality;
-
