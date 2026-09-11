@@ -184,6 +184,9 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(Between between, S context) {
+        if (between.getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         between.getLeftExpression().accept(this, context);
         if (between.isNot()) {
             builder.append(" NOT");
@@ -269,11 +272,17 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
         // if (expression.isNot()) {
         // buffer.append(NOT);
         // }
+        if (expression.getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         expression.getLeftExpression().accept(this, context);
         if (expression.getOldOracleJoinSyntax() == EqualsTo.ORACLE_JOIN_RIGHT) {
             builder.append("(+)");
         }
         builder.append(operator);
+        if (expression.getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_END) {
+            builder.append("PRIOR ");
+        }
         expression.getRightExpression().accept(this, context);
         if (expression.getOldOracleJoinSyntax() == EqualsTo.ORACLE_JOIN_LEFT) {
             builder.append("(+)");
@@ -346,6 +355,10 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(InExpression inExpression, S context) {
+        if (inExpression
+                .getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         inExpression.getLeftExpression().accept(this, context);
         if (inExpression
                 .getOldOracleJoinSyntax() == SupportsOldOracleJoinSyntax.ORACLE_JOIN_RIGHT) {
@@ -408,6 +421,10 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(IsNullExpression isNullExpression, S context) {
+        if (isNullExpression
+                .getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         isNullExpression.getLeftExpression().accept(this, context);
         if (isNullExpression.isUseNotNull()) {
             builder.append(" NOTNULL");
@@ -429,6 +446,10 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(IsBooleanExpression isBooleanExpression, S context) {
+        if (isBooleanExpression
+                .getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         isBooleanExpression.getLeftExpression().accept(this, context);
         if (isBooleanExpression.isTrue()) {
             if (isBooleanExpression.isNot()) {
@@ -448,6 +469,10 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(IsUnknownExpression isUnknownExpression, S context) {
+        if (isUnknownExpression
+                .getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         isUnknownExpression.getLeftExpression().accept(this, context);
         if (isUnknownExpression.isNot()) {
             builder.append(" IS NOT UNKNOWN");
@@ -473,6 +498,10 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
                 ? " SIMILAR TO"
                 : likeExpression.getLikeKeyWord().toString();
 
+        if (likeExpression
+                .getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         likeExpression.getLeftExpression().accept(this, context);
         builder.append(" ");
         if (likeExpression.isNot()) {
@@ -505,6 +534,10 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(MemberOfExpression memberOfExpression, S context) {
+        if (memberOfExpression
+                .getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         memberOfExpression.getLeftExpression().accept(this, context);
         if (memberOfExpression.isNot()) {
             builder.append(" NOT MEMBER OF ");
@@ -1511,7 +1544,12 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(SimilarToExpression expr, S context) {
-        deparse(expr, (expr.isNot() ? " NOT" : "") + " SIMILAR TO ", null);
+        if (expr.getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
+        expr.getLeftExpression().accept(this, context);
+        builder.append(expr.isNot() ? " NOT SIMILAR TO " : " SIMILAR TO ");
+        expr.getRightExpression().accept(this, context);
         return builder;
     }
 
@@ -1762,6 +1800,10 @@ public class ExpressionDeParser extends AbstractDeParser<Expression>
 
     @Override
     public <S> StringBuilder visit(IsDistinctExpression isDistinctExpression, S context) {
+        if (isDistinctExpression
+                .getOraclePriorPosition() == SupportsOldOracleJoinSyntax.ORACLE_PRIOR_START) {
+            builder.append("PRIOR ");
+        }
         builder.append(isDistinctExpression.getLeftExpression())
                 .append(isDistinctExpression.getStringExpression())
                 .append(isDistinctExpression.getRightExpression());
