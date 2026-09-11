@@ -716,6 +716,12 @@ One grammar covers every supported RDBMS, but a few pieces of syntax mean differ
 
 Features set explicitly *after* the preset win over it.
 
+MySQL user-variable targets in ``SELECT ... INTO @variable`` require
+``Dialect.MYSQL`` or ``Dialect.MARIADB``. They are stored in
+``PlainSelect.getMySqlSelectIntoClause().getVariables()`` as ``UserVariable``
+expressions, with the clause position preserved before ``FROM`` or at the end
+of the query. They are not table targets in ``getIntoTables()``.
+
 With ``Dialect.SQLSERVER``, ``PRIMARY KEY NONCLUSTERED (id)`` and
 ``UNIQUE CLUSTERED (id)`` store their clustering option in ``Index.getClustering()``
 for both ``CREATE TABLE`` and ``ALTER TABLE``. Without that dialect, these words
