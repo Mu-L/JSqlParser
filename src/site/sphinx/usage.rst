@@ -738,6 +738,8 @@ One grammar covers every supported RDBMS, but a few pieces of syntax mean differ
       - ``JOIN [shuffle]`` and ``JOIN [broadcast]`` distribution hints
     * - ``COCKROACHDB``
       - ``ALTER TABLE ... ALTER PRIMARY KEY USING COLUMNS (...)`` with optional hash sharding and storage parameters
+    * - ``TERADATA``
+      - ``UPDATE target FROM sources SET ...`` with the FROM clause before SET
 
 Features set explicitly *after* the preset win over it.
 
@@ -757,6 +759,12 @@ Their action is an ``AlterExpressionPrimaryKey`` with key elements and storage
 parameters in ``getIndex()``. ``isUsingHash()`` preserves ``USING HASH``, while
 ``getBucketCount()`` holds the legacy ``WITH BUCKET_COUNT = expression`` value.
 The newer ``WITH (bucket_count = expression)`` form uses the index storage parameters.
+
+With ``Dialect.TERADATA``, ``UPDATE a FROM target a, source b SET a.id = b.id``
+uses the existing ``Update`` model's ``fromItem`` and ``joins`` properties.
+``isFromBeforeSet()`` preserves the clause position in both SQL renderers.
+Table discovery and metadata validation recognize a target alias declared in
+that FROM clause. Other dialects retain the existing FROM-after-SET syntax.
 
 With ``Dialect.SQLSERVER``, ``PRIMARY KEY NONCLUSTERED (id)`` and
 ``UNIQUE CLUSTERED (id)`` store their clustering option in ``Index.getClustering()``
