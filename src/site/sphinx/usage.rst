@@ -723,6 +723,8 @@ One grammar covers every supported RDBMS, but a few pieces of syntax mean differ
       - Informix ``ALTER TABLE ... ADD CONSTRAINT`` definitions with optional trailing constraint names
     * - ``SPANNER``
       - GoogleSQL ``CREATE [UNIQUE] NULL_FILTERED INDEX`` with a separate null-filtering flag
+    * - ``DORIS``
+      - ``JOIN [shuffle]`` and ``JOIN [broadcast]`` distribution hints
 
 Features set explicitly *after* the preset win over it.
 
@@ -731,6 +733,11 @@ MySQL user-variable targets in ``SELECT ... INTO @variable`` require
 ``PlainSelect.getMySqlSelectIntoClause().getVariables()`` as ``UserVariable``
 expressions, with the clause position preserved before ``FROM`` or at the end
 of the query. They are not table targets in ``getIntoTables()``.
+
+Doris distribution hints require ``parser.withDialect(Dialect.DORIS)``.
+``Join.getJoinHint()`` exposes the keyword and ``Position.AFTER_JOIN``;
+the existing SQL Server hints use ``Position.BEFORE_JOIN``. Rendering preserves
+both the position and the brackets around a Doris hint.
 
 With ``Dialect.SQLSERVER``, ``PRIMARY KEY NONCLUSTERED (id)`` and
 ``UNIQUE CLUSTERED (id)`` store their clustering option in ``Index.getClustering()``
