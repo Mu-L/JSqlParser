@@ -115,9 +115,10 @@ tested, in any language — 19× ahead of `sqlglot[c]` on JSqlParser's own `SELE
 </div>
 
 ```text
-Benchmark                               (version)  Mode  Cnt   Score   Error  Units
-JSQLParserBenchmark.parseSQLStatements     latest  avgt   15   7.602 ± 0.135  ms/op
-JSQLParserBenchmark.parseSQLStatements        5.3  avgt   15  84.687 ± 3.321  ms/op
+Benchmark                                     (version)  Mode  Cnt    Score   Error  Units
+JSQLParserBenchmark.parseSQLStatements           latest  avgt   15   32.525 ± 0.413  ms/op
+JSQLParserBenchmark.parseSQLStatements              5.3  avgt   15  983.459 ± 8.197  ms/op
+JSQLParserBenchmark.parseSQLStatements              5.1  avgt   15  319.601 ± 4.081  ms/op
 ```
 
 Methodology and the full cross-parser comparison against SQLGlot, `sqlglot[c]` and
