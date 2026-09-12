@@ -735,7 +735,11 @@ jmh {
 def grammarWarningAllowList = [
         // JJTree copies the options block into the .jj; re-passing -OUTPUT_DIRECTORY on the
         // command line makes JavaCC complain that it overrides the in-file value.
-        ~/^Warning: .*Command line setting of .* modifies option value in file\./
+        ~/^Warning: .*Command line setting of .* modifies option value in file\./,
+
+        // -OUTPUT_DIRECTORY points at a scratch directory that is wiped before every run, so
+        // JavaCC always announces that it is creating it. Housekeeping, not a grammar problem.
+        ~/^Warning: Output directory .* does not exist\. Creating the directory\./
 ]
 
 def javaccMainClassOverride = project.findProperty('javaccMainClass')
@@ -787,6 +791,7 @@ tasks.register('checkGrammarAmbiguity') {
                 javaExe.absolutePath,
                 '-cp', javaccClasspath.asPath,
                 mainClass.toString(),
+                '-GRAMMAR_ENCODING=UTF-8',
                 "-OUTPUT_DIRECTORY=${out.absolutePath}".toString(),
                 jj.absolutePath)
                 .directory(out)
@@ -829,8 +834,8 @@ tasks.register('checkGrammarAmbiguity') {
             logger.error("\n${offending.join('\n\n')}\n")
             throw new GradleException(
                     "${offending.size()} JavaCC grammar warning(s), ${conflicts} of them choice " +
-                    "conflicts. Resolve the ambiguity or add an explicit LOOKAHEAD to the earlier " +
-                    "expansion. Report: ${report}")
+                            "conflicts. Resolve the ambiguity or add an explicit LOOKAHEAD to the earlier " +
+                            "expansion. Report: ${report}")
         }
 
         logger.lifecycle('Grammar is free of JavaCC choice conflicts.')
