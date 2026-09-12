@@ -68,6 +68,13 @@ public class AlterDeParser extends AbstractDeParser<Alter> {
             deParseTail(action);
             return;
         }
+        if (action.getOperation() == net.sf.jsqlparser.statement.alter.AlterOperation.ALTER
+                && action.getColumnSetDefaultList() != null
+                && !action.getColumnSetDefaultList().isEmpty()) {
+            action.appendColumnActionTo(builder,
+                    expression -> expression.accept(expressionVisitor, null));
+            return;
+        }
         if (action.getColDataTypeList() == null || action.getColDataTypeList().size() != 1
                 || action.getColDataTypeList().get(0).getUsingExpression() == null) {
             builder.append(action);
