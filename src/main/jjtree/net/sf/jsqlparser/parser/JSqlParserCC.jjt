@@ -4827,7 +4827,11 @@ InsertBulk InsertBulk():
     <K_INSERT> AccessKeyword("BULK") table=Table() { statement.setTable(table); }
     "(" column=InsertBulkColumn() { statement.getColumns().add(column); }
     ( "," column=InsertBulkColumn() { statement.getColumns().add(column); } )* ")"
-    [ <K_WITH> "(" option=InsertBulkOption() {
+    // LOOKAHEAD(2) is required, not cosmetic: Statements() permits two statements to be
+    // adjacent without a separator, so FIRST(SingleStatement) -- including <K_WITH> -- is in
+    // the FOLLOW set of every statement tail. `WITH (` cannot start a CTE, so two tokens
+    // separate the INSERT BULK option list from a following WITH statement.
+    [ LOOKAHEAD(2) <K_WITH> "(" option=InsertBulkOption() {
         statement.getOptions().add(option); kinds.add(option.getKind());
       }
       ( "," option=InsertBulkOption() {
@@ -4861,6 +4865,10 @@ InsertBulk.Option InsertBulkOption():
 }
 {
     (
+        // RelObjectName() below accepts <K_ORDER> as an identifier (isReservedKeywordAsIdentifier()
+        // returns true for ORDER unless BY or SIBLINGS follows), so ORDER is a genuine common
+        // prefix of the first and the last alternative. The option form always has "(" after it.
+        LOOKAHEAD(<K_ORDER> "(")
         <K_ORDER> { option = new InsertBulk.Option(InsertBulk.Option.Kind.ORDER); }
         "(" column=Column() {
             order = new OrderByElement().withExpression(column);
@@ -7290,7 +7298,9 @@ MySqlSelectIntoClause MySqlSelectIntoClause(MySqlSelectIntoClause.Position posit
         |
           LOOKAHEAD({ isMySqlDialect() })
           variable=MySqlIntoVariable() { variables.add(variable); }
-          ( "," variable=MySqlIntoVariable() { variables.add(variable); } )*
+          // Same shape as IntoClause() above: a PlainSelect can be followed by "," (subselect in
+          // an expression list), so the repetition needs two tokens to decide.
+          ( LOOKAHEAD(2) "," variable=MySqlIntoVariable() { variables.add(variable); } )*
           { intoClause.setType(MySqlSelectIntoClause.Type.VARIABLES); intoClause.setVariables(variables); }
     )
     {
@@ -15055,7 +15065,9 @@ DefaultConstraint DefaultConstraintSpec():
     [ <K_CONSTRAINT> name=RelObjectName() { constraint.setName(name); } ]
     <K_DEFAULT> expression=Expression() { constraint.setExpression(expression); }
     <K_FOR> name=RelObjectName() { constraint.setColumn(new Column(name)); }
-    [ <K_WITH> <K_VALUES> { constraint.setWithValues(true); } ]
+    // See InsertBulk(): <K_WITH> is in the FOLLOW set of every statement tail. WITH VALUES wins
+    // over a hypothetical CTE named VALUES, which is the useful reading here.
+    [ LOOKAHEAD(2) <K_WITH> <K_VALUES> { constraint.setWithValues(true); } ]
     { return constraint; }
 }
 
@@ -15556,7 +15568,8 @@ AlterExpressionPrimaryKey CockroachAlterPrimaryKey():
         }
         "=" bucketCount=Expression() { action.setBucketCount(bucketCount); } ]
     ]
-    [ <K_WITH> options=PostgreSqlIndexOptions() { action.getIndex().setStorageParameters(options); } ]
+    // LOOKAHEAD(2) as in the identical constructs at CreateIndex() and AlterExpression().
+    [ LOOKAHEAD(2) <K_WITH> options=PostgreSqlIndexOptions() { action.getIndex().setStorageParameters(options); } ]
     { return action; }
 }
 

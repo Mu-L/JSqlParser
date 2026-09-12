@@ -506,7 +506,7 @@ Version {{name}}
   {{#commits}}
    {{#ifMatches messageTitle "^(?!Merge).*"}}
   * **{{{messageTitle}}}**
-    
+
     {{authorName}}, {{commitDate}}
    {{/ifMatches}}
   {{/commits}}
@@ -717,4 +717,126 @@ jmh {
     fork = 3
     iterations = 5
     timeOnIteration = '1s'
+}
+
+// ---------------------------------------------------------------------------------------------
+// Grammar ambiguity gate
+//
+// JavaCC reports choice conflicts as "Warning: ..." on stdout and still exits 0, so an ambiguity
+// introduced by a PR is completely invisible to `./gradlew check`. The `org.javacc.javacc` plugin
+// forwards that output to the Gradle logger, where it cannot be inspected either.
+//
+// This task therefore re-runs JavaCC on the JJTree output, into a throwaway directory, captures
+// stdout+stderr and fails when any warning survives the allow list.
+// ---------------------------------------------------------------------------------------------
+
+// Regexes for warnings that are known-benign. Add an entry ONLY together with a comment saying
+// why. Never add a "Choice conflict" pattern here — that is the thing this gate exists to catch.
+def grammarWarningAllowList = [
+        // JJTree copies the options block into the .jj; re-passing -OUTPUT_DIRECTORY on the
+        // command line makes JavaCC complain that it overrides the in-file value.
+        ~/^Warning: .*Command line setting of .* modifies option value in file\./
+]
+
+def javaccMainClassOverride = project.findProperty('javaccMainClass')
+
+tasks.register('checkGrammarAmbiguity') {
+    group = 'verification'
+    description = 'Fails the build when JavaCC reports choice conflicts (grammar ambiguities).'
+
+    dependsOn(compileJavacc)
+
+    def jjFile = layout.buildDirectory
+            .file('generated/jjtree/net/sf/jsqlparser/parser/JSqlParserCC.jj')
+    def scratchDir = layout.buildDirectory.dir('grammar-check')
+    def reportFile = layout.buildDirectory.file('reports/grammar/javacc-warnings.txt')
+    def javaccClasspath = configurations.javacc
+    def allowList = grammarWarningAllowList
+    def mainClassOverride = javaccMainClassOverride
+
+    inputs.file(jjFile)
+    inputs.files(javaccClasspath)
+    outputs.file(reportFile)
+
+    doLast {
+        def jj = jjFile.get().asFile
+        if (!jj.exists()) {
+            throw new GradleException("Generated grammar not found: ${jj} — did compileJavacc run?")
+        }
+
+        def out = scratchDir.get().asFile
+        out.deleteDir()
+        out.mkdirs()
+
+        // JavaCC 8 splits into javacc-core / javacc-java; take Main-Class from whichever jar
+        // declares one, so this keeps working across upgrades of the Manticore JavaCC branch.
+        def mainClass = mainClassOverride ?: javaccClasspath.files.findResult { f ->
+            if (!f.name.endsWith('.jar')) {
+                return null
+            }
+            new java.util.jar.JarFile(f).withCloseable { jar ->
+                jar.manifest?.mainAttributes?.getValue('Main-Class')
+            }
+        } ?: 'org.javacc.parser.Main'
+
+        def isWindows = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('win')
+        def javaExe = new File(new File(System.getProperty('java.home'), 'bin'),
+                isWindows ? 'java.exe' : 'java')
+
+        def proc = new ProcessBuilder(
+                javaExe.absolutePath,
+                '-cp', javaccClasspath.asPath,
+                mainClass.toString(),
+                "-OUTPUT_DIRECTORY=${out.absolutePath}".toString(),
+                jj.absolutePath)
+                .directory(out)
+                .redirectErrorStream(true)
+                .start()
+
+        def output = proc.inputStream.getText('UTF-8')
+        def exit = proc.waitFor()
+
+        // Warnings are multi-line: a "Warning:" header followed by indented continuation lines.
+        def warnings = []
+        def current = null
+        output.eachLine { line ->
+            if (line.startsWith('Warning:')) {
+                current = new StringBuilder(line)
+                warnings << current
+            } else if (current != null && line.startsWith(' ')) {
+                current.append('\n').append(line)
+            } else {
+                current = null
+            }
+        }
+
+        def offending = warnings
+                .collect { it.toString() }
+                .findAll { w -> allowList.every { !(w =~ it) } }
+
+        def report = reportFile.get().asFile
+        report.parentFile.mkdirs()
+        report.setText(offending.isEmpty() ? 'No JavaCC grammar warnings.\n'
+                : offending.join('\n\n') + '\n', 'UTF-8')
+
+        if (exit != 0) {
+            logger.error(output)
+            throw new GradleException("JavaCC exited with ${exit} while analysing the grammar.")
+        }
+
+        if (!offending.isEmpty()) {
+            def conflicts = offending.count { it.contains('Choice conflict') }
+            logger.error("\n${offending.join('\n\n')}\n")
+            throw new GradleException(
+                    "${offending.size()} JavaCC grammar warning(s), ${conflicts} of them choice " +
+                    "conflicts. Resolve the ambiguity or add an explicit LOOKAHEAD to the earlier " +
+                    "expansion. Report: ${report}")
+        }
+
+        logger.lifecycle('Grammar is free of JavaCC choice conflicts.')
+    }
+}
+
+tasks.named('check') {
+    dependsOn('checkGrammarAmbiguity')
 }

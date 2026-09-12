@@ -20,6 +20,40 @@ env:
   JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
+  grammar_conflicts:
+    name: Grammar Choice Conflicts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
+
+      # Re-runs JavaCC on the JJTree output and fails on any "Warning: Choice conflict ...".
+      # `check` already depends on this task, but a dedicated job gives a fast, separately
+      # named status check that can be made required in branch protection.
+      - name: Check for grammar ambiguities
+        run: ./gradlew checkGrammarAmbiguity --no-daemon
+
+      - name: Upload grammar warning report
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: javacc-warnings
+          path: build/reports/grammar/
+          retention-days: 7
+          if-no-files-found: ignore
+
   gradle_check:
     name: Gradle Check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
