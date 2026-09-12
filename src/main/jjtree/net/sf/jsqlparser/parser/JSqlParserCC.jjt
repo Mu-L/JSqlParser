@@ -150,6 +150,21 @@ public class CCJSqlParser extends AbstractJSqlParser<CCJSqlParser> {
         node.jjtSetValue(access);
     }
 
+    /**
+     * Links a node whose production takes its left operand as a parameter, starting the node's
+     * token range at that operand rather than at the operator. The range is left as JJTree set it
+     * when the operand carries no node of its own.
+     */
+    private void linkAST(ASTNodeAccess access, Node node, Expression leftExpression) {
+        linkAST(access, node);
+        if (leftExpression instanceof ASTNodeAccess) {
+            Node leftNode = ((ASTNodeAccess) leftExpression).getASTNode();
+            if (leftNode != null && leftNode.jjtGetFirstToken() != null) {
+                node.jjtSetFirstToken(leftNode.jjtGetFirstToken());
+            }
+        }
+    }
+
     public Node getASTRoot() {
         return jjtree.rootNode();
     }
@@ -8704,7 +8719,7 @@ Expression RegularConditionRHS(Expression leftExpression, int oracleJoinRight) #
     }
 
     {
-        linkAST(result, jjtThis);
+        linkAST(result, jjtThis, leftExpression);
         return result;
     }
 }
@@ -8793,7 +8808,7 @@ Expression InExpression(Expression leftExpression) #InExpression :
                                                 .withOldOracleJoinSyntax(oldOracleJoin)
                                                 .withNot(usingNot)
                                                 .setGlobal(usingGlobal);
-        linkAST(inExpression,jjtThis);
+        linkAST(inExpression, jjtThis, leftExpression);
         return inExpression;
     }
 }
@@ -8808,7 +8823,7 @@ Expression IncludesExpression(Expression leftExpression) #IncludesExpression :
     {
         IncludesExpression includesExpression =  new IncludesExpression(leftExpression, rightExpression);
 
-        linkAST(includesExpression,jjtThis);
+        linkAST(includesExpression, jjtThis, leftExpression);
         return includesExpression;
     }
 }
@@ -8823,7 +8838,7 @@ Expression ExcludesExpression(Expression leftExpression) #ExcludesExpression :
     {
         ExcludesExpression excludesExpression =  new ExcludesExpression(leftExpression, rightExpression);
 
-        linkAST(excludesExpression,jjtThis);
+        linkAST(excludesExpression, jjtThis, leftExpression);
         return excludesExpression;
     }
 }
@@ -8934,7 +8949,7 @@ Expression LikeExpression(Expression leftExpression) #LikeExpression:
     {
         result.setLeftExpression(leftExpression);
         result.setRightExpression(rightExpression);
-        linkAST(result,jjtThis);
+        linkAST(result, jjtThis, leftExpression);
         return result;
     }
 }
@@ -8961,7 +8976,7 @@ Expression SimilarToExpression(Expression leftExpression) #SimilarToExpression:
     {
         result.setLeftExpression(leftExpression);
         result.setRightExpression(rightExpression);
-        linkAST(result,jjtThis);
+        linkAST(result, jjtThis, leftExpression);
         return result;
     }
 }
@@ -8977,7 +8992,7 @@ Expression IsDistinctExpression(Expression leftExpression) #IsDistinctExpression
     {
         result.setLeftExpression(leftExpression);
         result.setRightExpression(rightExpression);
-        linkAST(result,jjtThis);
+        linkAST(result, jjtThis, leftExpression);
         return result;
     }
 }
